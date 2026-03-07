@@ -16,12 +16,20 @@
         {% if job.status == 'completed' %}bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400
         {% elif job.status == 'running' %}bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
         {% elif job.status == 'failed' %}bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400
-        {% else %}bg-brand-100 dark:bg-brand-800 text-brand-600 dark:text-brand-400{% endif %}"
+        {% else %}bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400{% endif %}"
         id="status-badge">
         {% if job.status == 'running' %}<span class="h-1.5 w-1.5 rounded-full bg-amber-500 pulse-dot"></span>{% endif %}
-        {{ job.status }}
+        {% if job.status == 'pending' %}<span class="h-1.5 w-1.5 rounded-full bg-blue-500 pulse-dot"></span> queued{% else %}{{ job.status }}{% endif %}
       </span>
     </div>
+
+    <!-- Pending: waiting for crawler message -->
+    {% if job.status == 'pending' %}
+    <div id="pending-msg" class="mb-6 rounded-xl border border-blue-200/50 dark:border-blue-500/10 bg-blue-50/50 dark:bg-blue-900/10 px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+      <p class="font-medium mb-1">Waiting for crawler&hellip;</p>
+      <p class="text-xs text-blue-600 dark:text-blue-500">This job is queued and will start automatically once the local crawler worker is online. The crawler runs on a residential connection for reliable search-engine access.</p>
+    </div>
+    {% endif %}
 
     <!-- Pipeline Stage Visualization -->
     <div class="mb-8">
@@ -167,14 +175,22 @@
           if (data.duration_seconds != null) {
             timerEl.textContent = fmtDuration(data.duration_seconds);
           }
+          const pm = document.getElementById('pending-msg');
+          if (pm) pm.remove();
         } else if (data.status === 'running') {
+          badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
           badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-500 pulse-dot"></span> running';
+          const pm = document.getElementById('pending-msg');
+          if (pm) pm.remove();
           poll();
         } else if (data.status === 'failed') {
           badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-red-50 text-red-700';
           badge.textContent = 'failed';
           stopped = true;
+          const pm = document.getElementById('pending-msg');
+          if (pm) pm.remove();
         } else {
+          // pending
           poll();
         }
       } catch {

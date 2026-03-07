@@ -46,3 +46,7 @@ INDUSTRY_KEYWORDS: dict[str, list[str]] = {
 APP_TITLE: str = "LeadPulse"
 APP_DESCRIPTION: str = "Automated Business Lead Intelligence Platform"
 APP_VERSION: str = "1.0.0"
+
+# ── Worker / crawler settings ────────────────────────────────────────────────
+WORKER_SECRET: str = os.getenv("WORKER_SECRET", "change-me-in-production")
+WORKER_HEARTBEAT_TIMEOUT: int = int(os.getenv("WORKER_HEARTBEAT_TIMEOUT", "90"))

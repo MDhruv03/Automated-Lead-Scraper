@@ -1,6 +1,6 @@
 """Search route – start a new lead-discovery job."""
 
-from fastapi import APIRouter, Request, Depends, BackgroundTasks
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -10,7 +10,6 @@ from app.database import get_db
 from app.models.job import Job
 from app.models.company import Company
 from app.models.lead import Lead
-from app.services.pipeline import run_pipeline
 from app.config import MAX_COMPANIES_PER_JOB
 
 router = APIRouter()
@@ -33,7 +32,6 @@ async def search_page(request: Request):
 @router.post("/search")
 async def start_search(
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     form = await request.form()
@@ -51,8 +49,7 @@ async def start_search(
     db.commit()
     db.refresh(job)
 
-    background_tasks.add_task(run_pipeline, job.id)
-
+    # Job stays "pending" until the local worker picks it up
     return RedirectResponse(url=f"/jobs/{job.id}", status_code=303)
 
 
@@ -60,15 +57,12 @@ async def start_search(
 @router.post("/api/search")
 async def api_start_search(
     payload: SearchRequest,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     job = Job(query=payload.industry, location=payload.location)
     db.add(job)
     db.commit()
     db.refresh(job)
-
-    background_tasks.add_task(run_pipeline, job.id)
 
     return {"job_id": job.id, "status": job.status}
 

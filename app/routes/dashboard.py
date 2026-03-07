@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.company import Company
 from app.models.lead import Lead
 from app.models.job import Job
+from app.routes.worker import is_worker_online
 
 router = APIRouter()
 
@@ -52,5 +53,6 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
             "top_industries": top_industries,
             "recent_jobs": recent_jobs,
             "top_leads": top_leads,
+            "worker_online": is_worker_online(),
         },
     )
