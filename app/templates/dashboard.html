@@ -87,7 +87,7 @@
         <a href="/jobs/{{ job.id }}" class="flex-1 min-w-0">
           <p class="text-sm font-medium dark:text-brand-200">{{ job.query }} · {{ job.location }}</p>
           <p class="text-xs text-brand-400">{{ job.created_at|ist('%b %d, %H:%M') }}
-            {% if job.duration_seconds %} · {{ job.duration_seconds }}s{% endif %}
+            {% if job.duration_seconds is not none %} · {{ job.duration_display }}{% endif %}
           </p>
         </a>
         <div class="flex items-center gap-2 ml-3">

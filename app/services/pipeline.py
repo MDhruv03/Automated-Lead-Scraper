@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time as _time
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -69,6 +70,7 @@ def run_pipeline(job_id: int) -> None:
 
         job.status = "running"
         _set_stage(db, job, "discovering")
+        _start_time = _time.monotonic()
 
         # ── Step 1: Discover companies ────────────────────────────────────
         discovered = discover_companies(job.query, job.location)
@@ -298,6 +300,7 @@ def run_pipeline(job_id: int) -> None:
         job.status = "completed"
         job.current_stage = "completed"
         job.completed_at = datetime.now(timezone.utc)
+        job.duration_seconds = round(_time.monotonic() - _start_time, 1)
         db.commit()
         logger.info(
             "Job %s completed – %d saved, skipped: validation=%d, relevance=%d, contacts=%d, score=%d",

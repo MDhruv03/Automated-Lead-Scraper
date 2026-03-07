@@ -11,6 +11,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import APP_TITLE, APP_DESCRIPTION, APP_VERSION
 from app.database import engine, Base
+from sqlalchemy import inspect, text
 
 # ── Models must be imported so SQLAlchemy knows about them ────────────────────
 from app.models import company, lead, job  # noqa: F401
@@ -27,6 +28,14 @@ logger = logging.getLogger(__name__)
 
 # ── Create tables ─────────────────────────────────────────────────────────────
 Base.metadata.create_all(bind=engine)
+
+# ── Lightweight schema migration (add missing columns) ────────────────────────
+with engine.connect() as conn:
+    cols = {c["name"] for c in inspect(engine).get_columns("jobs")}
+    if "duration_seconds" not in cols:
+        conn.execute(text("ALTER TABLE jobs ADD COLUMN duration_seconds FLOAT"))
+        conn.commit()
+        logger.info("Migrated: added duration_seconds column to jobs table")
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(

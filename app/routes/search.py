@@ -99,6 +99,8 @@ async def api_job_status(job_id: int, db: Session = Depends(get_db)):
         "total_companies": job.total_companies,
         "processed_companies": job.processed_companies,
         "current_stage": job.current_stage,
+        "created_at": job.created_at.isoformat() if job.created_at else None,
+        "duration_seconds": job.duration_seconds,
     }
 
 

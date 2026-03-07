@@ -83,14 +83,16 @@
         <dt class="text-brand-500 dark:text-brand-400">Started</dt>
         <dd class="font-medium dark:text-brand-200">{{ job.created_at|ist('%b %d, %Y %H:%M') if job.created_at else '—' }}</dd>
       </div>
+      <div class="flex justify-between">
+        <dt class="text-brand-500 dark:text-brand-400">Elapsed Time</dt>
+        <dd class="font-semibold tabular-nums dark:text-brand-200" id="timer">
+          {% if job.duration_seconds is not none %}{{ job.duration_display }}{% else %}—{% endif %}
+        </dd>
+      </div>
       {% if job.completed_at %}
       <div class="flex justify-between">
         <dt class="text-brand-500 dark:text-brand-400">Completed</dt>
         <dd class="font-medium dark:text-brand-200">{{ job.completed_at|ist('%b %d, %Y %H:%M') }}</dd>
-      </div>
-      <div class="flex justify-between">
-        <dt class="text-brand-500 dark:text-brand-400">Duration</dt>
-        <dd class="font-medium dark:text-brand-200">{{ job.duration_seconds }}s</dd>
       </div>
       {% endif %}
     </dl>
@@ -107,50 +109,80 @@
 {% block scripts %}
 {% if job.status in ('pending', 'running') %}
 <script>
-(function poll() {
-  setTimeout(async () => {
-    try {
-      const res = await fetch('/api/jobs/{{ job.id }}');
-      const data = await res.json();
-      const total = data.total_companies || 0;
-      const processed = data.processed_companies || 0;
-      const pct = total ? Math.round(processed / total * 100) : 0;
+(function() {
+  // Live ticking timer
+  const timerEl = document.getElementById('timer');
+  const createdAt = new Date('{{ job.created_at.isoformat() }}Z');
+  let stopped = false;
 
-      document.getElementById('progress-bar').style.width = pct + '%';
-      document.getElementById('progress-text').textContent = processed + ' / ' + total + ' companies';
+  function fmtDuration(secs) {
+    secs = Math.floor(secs);
+    if (secs < 60) return secs + 's';
+    const m = Math.floor(secs / 60), s = secs % 60;
+    if (m < 60) return m + 'm ' + s + 's';
+    const h = Math.floor(m / 60), rm = m % 60;
+    return h + 'h ' + rm + 'm ' + s + 's';
+  }
 
-      // Update stage visualization
-      const stages = ["queued","discovering","crawling","extracting","enriching","scoring","completed"];
-      const current = data.current_stage || (data.status === 'completed' ? 'completed' : 'queued');
-      const currentIdx = stages.indexOf(current);
-      document.querySelectorAll('#pipeline-stages [data-stage]').forEach((el, i) => {
-        const circle = el.querySelector('div');
-        if (i < currentIdx || data.status === 'completed') {
-          circle.className = 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white transition-all duration-500';
-          circle.innerHTML = '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>';
-        } else if (i === currentIdx && data.status === 'running') {
-          circle.className = 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent-500 bg-accent-500/10 text-accent-600 transition-all duration-500';
-          circle.innerHTML = '<svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+  function tick() {
+    if (stopped) return;
+    const elapsed = (Date.now() - createdAt.getTime()) / 1000;
+    timerEl.textContent = fmtDuration(elapsed);
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  function poll() {
+    setTimeout(async () => {
+      try {
+        const res = await fetch('/api/jobs/{{ job.id }}');
+        const data = await res.json();
+        const total = data.total_companies || 0;
+        const processed = data.processed_companies || 0;
+        const pct = total ? Math.round(processed / total * 100) : 0;
+
+        document.getElementById('progress-bar').style.width = pct + '%';
+        document.getElementById('progress-text').textContent = processed + ' / ' + total + ' companies';
+
+        // Update stage visualization
+        const stages = ["queued","discovering","crawling","extracting","enriching","scoring","completed"];
+        const current = data.current_stage || (data.status === 'completed' ? 'completed' : 'queued');
+        const currentIdx = stages.indexOf(current);
+        document.querySelectorAll('#pipeline-stages [data-stage]').forEach((el, i) => {
+          const circle = el.querySelector('div');
+          if (i < currentIdx || data.status === 'completed') {
+            circle.className = 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-emerald-500 bg-emerald-500 text-white transition-all duration-500';
+            circle.innerHTML = '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>';
+          } else if (i === currentIdx && data.status === 'running') {
+            circle.className = 'flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent-500 bg-accent-500/10 text-accent-600 transition-all duration-500';
+            circle.innerHTML = '<svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+          }
+        });
+
+        const badge = document.getElementById('status-badge');
+        if (data.status === 'completed') {
+          badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700';
+          badge.textContent = 'completed';
+          stopped = true;
+          if (data.duration_seconds != null) {
+            timerEl.textContent = fmtDuration(data.duration_seconds);
+          }
+        } else if (data.status === 'running') {
+          badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-500 pulse-dot"></span> running';
+          poll();
+        } else if (data.status === 'failed') {
+          badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-red-50 text-red-700';
+          badge.textContent = 'failed';
+          stopped = true;
+        } else {
+          poll();
         }
-      });
-
-      const badge = document.getElementById('status-badge');
-      if (data.status === 'completed') {
-        badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700';
-        badge.textContent = 'completed';
-      } else if (data.status === 'running') {
-        badge.innerHTML = '<span class="h-1.5 w-1.5 rounded-full bg-amber-500 pulse-dot"></span> running';
-        poll();
-      } else if (data.status === 'failed') {
-        badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-red-50 text-red-700';
-        badge.textContent = 'failed';
-      } else {
+      } catch {
         poll();
       }
-    } catch {
-      poll();
-    }
-  }, 2000);
+    }, 2000);
+  }
+  poll();
 })();
 </script>
 {% endif %}

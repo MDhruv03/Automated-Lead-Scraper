@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Float
 
 from app.database import Base
 
@@ -28,6 +28,7 @@ class Job(Base):
     total_companies = Column(Integer, default=0)
     processed_companies = Column(Integer, default=0)
     current_stage = Column(String(30), default="queued")  # pipeline stage name
+    duration_seconds = Column(Float, nullable=True)  # total wall-clock seconds
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -39,10 +40,19 @@ class Job(Base):
             return 0
 
     @property
-    def duration_seconds(self) -> int | None:
-        if self.completed_at and self.created_at:
-            return int((self.completed_at - self.created_at).total_seconds())
-        return None
+    def duration_display(self) -> str:
+        """Human-readable duration string."""
+        secs = self.duration_seconds
+        if secs is None:
+            return "—"
+        secs = int(secs)
+        if secs < 60:
+            return f"{secs}s"
+        mins, s = divmod(secs, 60)
+        if mins < 60:
+            return f"{mins}m {s}s"
+        hrs, m = divmod(mins, 60)
+        return f"{hrs}h {m}m {s}s"
 
     def __repr__(self) -> str:
         return f"<Job {self.id} – {self.status}>"
