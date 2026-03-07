@@ -1,4 +1,10 @@
-"""Crawler service – fetches key pages from a company website."""
+"""Crawler service – fetches key pages from a company website.
+
+- Checks robots.txt before crawling
+- Crawls only homepage + fixed business pages (/, /contact, /about, /team, /company)
+- Realistic headers (User-Agent + Accept-Language)
+- Configurable delay, timeout, retries with exponential backoff
+"""
 
 from __future__ import annotations
 
@@ -7,24 +13,28 @@ import time
 from dataclasses import dataclass
 from typing import List
 from urllib.parse import urljoin, urlparse
+from urllib.robotparser import RobotFileParser
 
 import requests
-from bs4 import BeautifulSoup
 
-from app.config import MAX_PAGES_PER_SITE, REQUEST_TIMEOUT, CRAWL_DELAY
+from app.config import MAX_PAGES_PER_SITE, REQUEST_TIMEOUT, CRAWL_DELAY, MAX_RETRIES
 
 logger = logging.getLogger(__name__)
 
+_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0.0.0 Safari/537.36"
+)
+
 _HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": _USER_AGENT,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
 }
 
-# Pages most likely to contain contact info
-_PRIORITY_PATHS = ["/contact", "/about", "/team", "/about-us", "/contact-us"]
+# Fixed business pages to try (in priority order)
+_BUSINESS_PATHS = ["/contact", "/about", "/team", "/company", "/about-us", "/contact-us"]
 
 
 @dataclass
@@ -34,64 +44,85 @@ class CrawledPage:
     status_code: int
 
 
-def _is_same_domain(base: str, url: str) -> bool:
-    return urlparse(base).netloc == urlparse(url).netloc
+def _check_robots(base_url: str) -> RobotFileParser | None:
+    """Fetch and parse robots.txt. Returns parser or None on failure."""
+    parsed = urlparse(base_url)
+    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+    rp = RobotFileParser()
+    try:
+        resp = requests.get(robots_url, headers=_HEADERS, timeout=5)
+        if resp.status_code == 200:
+            rp.parse(resp.text.splitlines())
+            return rp
+    except Exception:
+        pass
+    return None
 
 
-def _find_contact_links(soup: BeautifulSoup, base_url: str) -> List[str]:
-    """Discover internal links that likely point to contact/about pages."""
-    keywords = {"contact", "about", "team", "people", "staff", "leadership"}
-    links: list[str] = []
-    for a in soup.find_all("a", href=True):
-        href = a["href"].lower()
-        text = a.get_text(strip=True).lower()
-        if any(kw in href or kw in text for kw in keywords):
-            full = urljoin(base_url, a["href"])
-            if _is_same_domain(base_url, full) and full not in links:
-                links.append(full)
-    return links
+def _can_fetch(robots: RobotFileParser | None, url: str) -> bool:
+    """Check if we're allowed to crawl this URL per robots.txt."""
+    if robots is None:
+        return True
+    return robots.can_fetch(_USER_AGENT, url)
 
 
 def _fetch(url: str) -> CrawledPage | None:
-    try:
-        resp = requests.get(url, headers=_HEADERS, timeout=REQUEST_TIMEOUT, allow_redirects=True)
-        return CrawledPage(url=resp.url, html=resp.text, status_code=resp.status_code)
-    except requests.RequestException as exc:
-        logger.debug("Failed to fetch %s: %s", url, exc)
-        return None
+    """Fetch a URL with retries and exponential backoff."""
+    for attempt in range(1, MAX_RETRIES + 2):
+        try:
+            resp = requests.get(
+                url, headers=_HEADERS, timeout=REQUEST_TIMEOUT, allow_redirects=True,
+            )
+            if resp.status_code < 400:
+                return CrawledPage(url=resp.url, html=resp.text, status_code=resp.status_code)
+            if resp.status_code in (429, 503) and attempt <= MAX_RETRIES:
+                wait = CRAWL_DELAY * (2 ** (attempt - 1))
+                logger.debug("HTTP %d for %s, retrying in %.1fs", resp.status_code, url, wait)
+                time.sleep(wait)
+                continue
+            return None
+        except requests.RequestException as exc:
+            if attempt <= MAX_RETRIES:
+                wait = CRAWL_DELAY * (2 ** (attempt - 1))
+                logger.debug("Fetch error %s for %s, retrying in %.1fs", exc, url, wait)
+                time.sleep(wait)
+            else:
+                logger.debug("Failed to fetch %s after %d attempts: %s", url, attempt, exc)
+    return None
 
 
 def crawl_website(website: str) -> List[CrawledPage]:
-    """Crawl the homepage + priority sub-pages. Returns up to MAX_PAGES_PER_SITE pages."""
+    """Crawl the homepage + fixed business sub-pages.
+
+    Returns up to MAX_PAGES_PER_SITE pages. Respects robots.txt.
+    """
     pages: list[CrawledPage] = []
     visited: set[str] = set()
 
-    # 1) Homepage
+    robots = _check_robots(website)
+
+    if not _can_fetch(robots, website):
+        logger.warning("robots.txt disallows crawling %s", website)
+        return pages
+
     home = _fetch(website)
-    if not home or home.status_code >= 400:
+    if not home:
         return pages
     pages.append(home)
     visited.add(home.url)
 
-    # 2) Discover useful internal links
-    soup = BeautifulSoup(home.html, "lxml")
-    discovered = _find_contact_links(soup, website)
-
-    # 3) Priority static paths
-    for path in _PRIORITY_PATHS:
-        candidate = urljoin(website, path)
-        if candidate not in discovered:
-            discovered.insert(0, candidate)
-
-    # 4) Fetch sub-pages up to limit
-    for link in discovered:
+    for path in _BUSINESS_PATHS:
         if len(pages) >= MAX_PAGES_PER_SITE:
             break
-        if link in visited:
+        candidate = urljoin(website, path)
+        if candidate in visited:
             continue
-        visited.add(link)
+        if not _can_fetch(robots, candidate):
+            logger.debug("robots.txt disallows %s", candidate)
+            continue
+        visited.add(candidate)
         time.sleep(CRAWL_DELAY)
-        page = _fetch(link)
+        page = _fetch(candidate)
         if page and page.status_code < 400:
             pages.append(page)
 

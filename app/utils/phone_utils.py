@@ -3,19 +3,8 @@
 import re
 from typing import List
 
-# Intentionally broad to catch international formats
-_PHONE_RE = re.compile(
-    r"""
-    (?:
-        \+?\d{1,3}[\s\-.]?         # optional country code
-    )?
-    (?:
-        \(?\d{2,5}\)?[\s\-.]?      # area code
-    )
-    \d[\d\s\-\.]{5,}\d             # subscriber digits (min ~7 digits total)
-    """,
-    re.VERBOSE,
-)
+# Liberal international phone regex
+_PHONE_RE = re.compile(r"(\+?\d[\d\-\s\(\)]{7,}\d)")
 
 _MIN_DIGITS = 7
 _MAX_DIGITS = 15

@@ -9,11 +9,11 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.config import MIN_LEAD_SCORE
+from app.config import MIN_LEAD_SCORE, INDUSTRY_KEYWORDS
 from app.models.company import Company
 from app.models.lead import Lead
 from app.models.job import Job
-from app.services.discovery_service import discover_companies
+from app.services.discovery_service import discover_companies, _is_article_url, _is_bad_domain
 from app.services.crawler_service import crawl_website
 from app.services.extraction_service import extract_contacts_from_html, merge_contacts
 from app.services.enrichment_service import enrich
@@ -27,6 +27,23 @@ from app.utils.text_utils import clean_html_text
 logger = logging.getLogger(__name__)
 
 
+def _get_industry_keywords(query: str) -> list[str]:
+    """Return industry keywords matching the query, or an empty list."""
+    q = query.lower()
+    for industry, kws in INDUSTRY_KEYWORDS.items():
+        if industry in q or any(kw in q for kw in kws[:3]):
+            return kws
+    return []
+
+
+def _has_industry_relevance(text: str, keywords: list[str]) -> bool:
+    """Check if any industry keyword appears in the combined crawled text."""
+    if not keywords:
+        return True  # No industry keywords defined → don't block
+    text_lower = text.lower()
+    return any(kw in text_lower for kw in keywords)
+
+
 def _set_stage(db: Session, job: Job, stage: str) -> None:
     """Update the current pipeline stage on the job record."""
     job.current_stage = stage
@@ -38,8 +55,10 @@ def run_pipeline(job_id: int) -> None:
 
     Quality gates:
       - Business validation: homepage must have ≥3 business signals
+      - Industry relevance: crawled text must contain ≥1 industry keyword
       - Contact requirement: at least one email OR phone needed
       - Score threshold: leads scoring < MIN_LEAD_SCORE are discarded
+      - Strict dedup: by (normalized domain, email)
     """
     db: Session = SessionLocal()
     try:
@@ -56,15 +75,27 @@ def run_pipeline(job_id: int) -> None:
         job.total_companies = len(discovered)
         _set_stage(db, job, "crawling")
 
+        industry_kws = _get_industry_keywords(job.query)
+        logger.info("Industry keywords for '%s': %s", job.query, industry_kws[:5] if industry_kws else "none")
+
         saved_count = 0
         skipped_validation = 0
         skipped_contacts = 0
         skipped_score = 0
+        skipped_relevance = 0
+        seen_domain_email: set[tuple[str, str]] = set()
 
         for idx, disc in enumerate(discovered, 1):
             try:
                 # ── Dedup check ───────────────────────────────────────────
                 if is_duplicate_company(db, disc.domain, disc.name):
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+
+                # Check domain quality
+                if _is_bad_domain(disc.domain):
+                    logger.info("SKIP (bad domain) %s", disc.domain)
                     job.processed_companies = idx
                     db.commit()
                     continue
@@ -76,6 +107,9 @@ def run_pipeline(job_id: int) -> None:
                 has_contact_page = any(
                     kw in p.url.lower() for p in pages for kw in ("contact", "about", "team")
                 )
+
+                # Reject pages that look like articles/blog posts
+                pages = [p for p in pages if not _is_article_url(p.url)]
 
                 # ── Quality Gate 1: Business validation ───────────────────
                 if pages:
@@ -93,6 +127,15 @@ def run_pipeline(job_id: int) -> None:
                 else:
                     logger.info("SKIP (no pages crawled) %s", disc.domain)
                     skipped_validation += 1
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+
+                # ── Quality Gate 1b: Industry relevance ───────────────────
+                full_text = " ".join(clean_html_text(p.html) for p in pages)
+                if not _has_industry_relevance(full_text, industry_kws):
+                    logger.info("SKIP (no industry relevance) %s", disc.domain)
+                    skipped_relevance += 1
                     job.processed_companies = idx
                     db.commit()
                     continue
@@ -125,14 +168,19 @@ def run_pipeline(job_id: int) -> None:
                     tech_signals = detect_technologies(pages[0].html)
                     header_signals = detect_from_headers({})
                     all_signals = {s.name: s for s in tech_signals + header_signals}
-                    techs = list(all_signals.values())
+                    techs = [s.name for s in all_signals.values()]
 
                     meta = extract_meta_info(pages[0].html)
                     meta_desc = meta.get("description", "")
                     logo = meta.get("og_image", "")
 
-                full_text = " ".join(clean_html_text(p.html) for p in pages)
                 emp_est = estimate_company_size(full_text[:5000])
+
+                # Check if domain is high-risk (e.g. suspicious patterns)
+                is_high_risk = disc.domain.count("-") >= 3
+
+                # Check industry keyword presence for scoring
+                industry_kw_present = _has_industry_relevance(full_text, industry_kws) if industry_kws else False
 
                 # ── Step 4: Enrich ────────────────────────────────────────
                 _set_stage(db, job, "enriching")
@@ -146,19 +194,22 @@ def run_pipeline(job_id: int) -> None:
 
                 if merged.emails:
                     for email in merged.emails[:5]:
+                        # Strict dedup: (domain, email)
+                        dedup_key = (disc.domain, email.lower())
+                        if dedup_key in seen_domain_email:
+                            continue
+                        seen_domain_email.add(dedup_key)
+
                         is_valid = validate_email(email)
                         role = classify_email_role(email)
-                        is_personal = role in ("Executive", "Personal")
                         breakdown = score_lead(
                             email=email,
                             email_valid=is_valid,
                             phone=merged.phones[0] if merged.phones else None,
-                            linkedin=merged.linkedin,
                             has_contact_page=has_contact_page,
-                            description=enrichment.description,
+                            has_industry_keyword=industry_kw_present,
                             website_active=website_active,
-                            tech_detected=len(techs) > 0,
-                            is_personal_email=is_personal,
+                            is_high_risk_domain=is_high_risk,
                         )
                         if breakdown.total < MIN_LEAD_SCORE:
                             logger.debug(
@@ -182,11 +233,10 @@ def run_pipeline(job_id: int) -> None:
                     # Phone-only lead
                     breakdown = score_lead(
                         phone=merged.phones[0] if merged.phones else None,
-                        linkedin=merged.linkedin,
                         has_contact_page=has_contact_page,
-                        description=enrichment.description,
+                        has_industry_keyword=industry_kw_present,
                         website_active=website_active,
-                        tech_detected=len(techs) > 0,
+                        is_high_risk_domain=is_high_risk,
                     )
                     if breakdown.total >= MIN_LEAD_SCORE:
                         leads_to_save.append(
@@ -236,6 +286,8 @@ def run_pipeline(job_id: int) -> None:
                 saved_count += 1
                 job.processed_companies = idx
                 db.commit()
+                logger.info("SAVED lead(s) for %s (score %d+)", disc.domain,
+                            leads_to_save[0].lead_score if leads_to_save else 0)
 
             except Exception:
                 logger.exception("Error processing company %s", disc.name)
@@ -248,9 +300,8 @@ def run_pipeline(job_id: int) -> None:
         job.completed_at = datetime.now(timezone.utc)
         db.commit()
         logger.info(
-            "Job %s completed – %d saved, %d skipped (validation=%d, contacts=%d, score=%d)",
-            job_id, saved_count, skipped_validation + skipped_contacts + skipped_score,
-            skipped_validation, skipped_contacts, skipped_score,
+            "Job %s completed – %d saved, skipped: validation=%d, relevance=%d, contacts=%d, score=%d",
+            job_id, saved_count, skipped_validation, skipped_relevance, skipped_contacts, skipped_score,
         )
 
     except Exception:

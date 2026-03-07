@@ -8,11 +8,6 @@ _EMAIL_RE = re.compile(
     r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}",
 )
 
-# Obfuscated variants: name [at] domain [dot] com
-_OBFUSCATED_RE = re.compile(
-    r"[A-Za-z0-9._%+\-]+\s*\[?\s*(?:at|AT)\s*\]?\s*[A-Za-z0-9.\-]+\s*\[?\s*(?:dot|DOT)\s*\]?\s*[A-Za-z]{2,}",
-)
-
 # Common non-person / generic addresses to skip
 _BLACKLIST_PREFIXES = {
     "noreply", "no-reply", "mailer-daemon", "postmaster", "webmaster",
@@ -24,6 +19,20 @@ _BLACKLIST_DOMAINS = {
     "example.com", "example.org", "test.com", "sentry.io",
     "wixpress.com", "googleapis.com",
 }
+
+
+def _deobfuscate_text(text: str) -> str:
+    """Pre-clean common email obfuscations in text before regex extraction.
+
+    Handles: [at], (at), {at}, ' at ', [dot], (dot), {dot}, ' dot '
+    """
+    # Replace [at] / (at) / {at} / ' at ' with @
+    text = re.sub(r"\s*[\[\({]\s*at\s*[\]\)}]\s*", "@", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+at\s+", "@", text, flags=re.IGNORECASE)
+    # Replace [dot] / (dot) / {dot} / ' dot ' with .
+    text = re.sub(r"\s*[\[\({]\s*dot\s*[\]\)}]\s*", ".", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+dot\s+", ".", text, flags=re.IGNORECASE)
+    return text
 
 # ── Email role classification ────────────────────────────────────────────────
 _ROLE_MAP: dict[str, list[str]] = {
@@ -52,24 +61,18 @@ def classify_email_role(email: str) -> str:
     return "Unknown"
 
 
-def _deobfuscate(text: str) -> str:
-    """Replace [at] / [dot] tokens with their real equivalents."""
-    text = re.sub(r"\s*\[?\s*(?:at|AT)\s*\]?\s*", "@", text, count=1)
-    text = re.sub(r"\s*\[?\s*(?:dot|DOT)\s*\]?\s*", ".", text)
-    return text
-
-
 def extract_emails(text: str) -> List[str]:
-    """Return a deduplicated list of plausible email addresses found in *text*."""
+    """Return a deduplicated list of plausible email addresses found in *text*.
+
+    Pre-cleans obfuscations ([at], (at), [dot], etc.) before regex matching.
+    """
+    # Step 1: deobfuscate
+    cleaned_text = _deobfuscate_text(text)
+
+    # Step 2: extract with standard regex
     found: set[str] = set()
-
-    for match in _EMAIL_RE.findall(text):
+    for match in _EMAIL_RE.findall(cleaned_text):
         found.add(match.lower())
-
-    for match in _OBFUSCATED_RE.findall(text):
-        deobfuscated = _deobfuscate(match).lower()
-        if _EMAIL_RE.fullmatch(deobfuscated):
-            found.add(deobfuscated)
 
     # Filter junk
     cleaned: list[str] = []

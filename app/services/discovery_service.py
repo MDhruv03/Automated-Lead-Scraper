@@ -21,7 +21,7 @@ import requests
 from bs4 import BeautifulSoup
 import tldextract
 
-from app.config import MAX_COMPANIES_PER_JOB, REQUEST_TIMEOUT, CRAWL_DELAY
+from app.config import MAX_COMPANIES_PER_JOB, REQUEST_TIMEOUT, CRAWL_DELAY, INDUSTRY_KEYWORDS
 
 logger = logging.getLogger(__name__)
 
@@ -151,8 +151,15 @@ class DiscoveredCompany:
 
 
 def _extract_domain(url: str) -> str:
+    """Extract and normalize the registered domain to ASCII/punycode."""
     ext = tldextract.extract(url)
-    return f"{ext.domain}.{ext.suffix}".lower()
+    domain = f"{ext.domain}.{ext.suffix}".lower()
+    # Normalize to ASCII/punycode
+    try:
+        domain = domain.encode("idna").decode("ascii")
+    except (UnicodeError, UnicodeDecodeError):
+        pass
+    return domain
 
 
 def _clean_url(url: str) -> str:
@@ -163,20 +170,28 @@ def _clean_url(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
+_SUSPICIOUS_TOKENS = {"free", "download", "crack", "keygen", "torrent", "proxy", "vpn"}
+
+
 def _is_bad_domain(domain: str) -> bool:
     """Check if a domain is in the blacklist or looks suspicious."""
     if domain in _BAD_DOMAINS:
         return True
-    # Also check if the registered domain (without subdomain) is bad
     ext = tldextract.extract(domain)
     base = f"{ext.domain}.{ext.suffix}".lower()
     if base in _BAD_DOMAINS:
         return True
-    if len(domain) > 50:
+    # Too long
+    if len(domain) > 64:
         return True
+    # Too many hyphens
     if domain.count("-") > 3:
         return True
+    # No TLD
     if "." not in domain:
+        return True
+    # Suspicious tokens in domain
+    if any(tok in ext.domain.lower() for tok in _SUSPICIOUS_TOKENS):
         return True
     return False
 
@@ -189,6 +204,18 @@ def _is_bad_title(title: str) -> bool:
     if any(p.search(title) for p in _BAD_TITLE_PATTERNS):
         return True
     return False
+
+
+# Article heuristic for URLs
+_ARTICLE_URL_RE = re.compile(
+    r"/(blog|article|news|post|story|guide|tutorial|how-to|tips|review|recipe|top-\d+|best-|\d{4}/\d{2}/)",
+    re.I,
+)
+
+
+def _is_article_url(url: str) -> bool:
+    """Reject URLs that look like blog/article/listicle pages."""
+    return bool(_ARTICLE_URL_RE.search(url))
 
 
 def _is_directory_page(url: str) -> bool:
