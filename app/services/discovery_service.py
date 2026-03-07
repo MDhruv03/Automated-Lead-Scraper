@@ -267,16 +267,27 @@ def _is_relevant_to_query(title: str, industry: str, location: str) -> bool:
 # ── Search engines ───────────────────────────────────────────────────────────
 
 def _search_brave(query: str, max_results: int) -> List[dict]:
-    """Scrape Brave Search HTML results."""
+    """Scrape Brave Search HTML results with retry on 429."""
     results: list[dict] = []
     encoded = quote_plus(query)
     url = f"https://search.brave.com/search?q={encoded}"
 
-    try:
-        resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Brave Search request failed: %s", exc)
+    resp = None
+    for attempt in range(3):
+        try:
+            resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
+            if resp.status_code == 429:
+                wait = 3 * (attempt + 1)
+                logger.info("Brave 429 – retrying in %ds (attempt %d/3)", wait, attempt + 1)
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            break
+        except requests.RequestException as exc:
+            logger.warning("Brave Search request failed: %s", exc)
+            return results
+    if resp is None or resp.status_code != 200:
+        logger.warning("Brave Search exhausted retries for: %s", query)
         return results
 
     soup = BeautifulSoup(resp.text, "lxml")
@@ -305,11 +316,16 @@ def _search_brave(query: str, max_results: int) -> List[dict]:
 
 
 def _search_ddg_api(query: str, max_results: int) -> List[dict]:
-    """Use the duckduckgo-search library."""
+    """Use the ddgs (formerly duckduckgo-search) library."""
+    DDGS = None
     try:
-        from duckduckgo_search import DDGS
+        from ddgs import DDGS
     except ImportError:
-        return []
+        try:
+            from duckduckgo_search import DDGS
+        except ImportError:
+            logger.warning("Neither ddgs nor duckduckgo_search is installed")
+            return []
 
     results: list[dict] = []
     try:
@@ -357,14 +373,51 @@ def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
     return results
 
 
-# Bing RSS is intentionally REMOVED — it returns completely irrelevant results
-# (Zoho signup, Air Fryer cleaning, Coconut nutrition) from Render IPs.
-# Brave → DDG API → DDG HTML is sufficient.
+def _search_google_scrape(query: str, max_results: int) -> List[dict]:
+    """Scrape Google search results as a fallback."""
+    results: list[dict] = []
+    encoded = quote_plus(query)
+    url = f"https://www.google.com/search?q={encoded}&num={max_results}"
+
+    try:
+        resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
+        if resp.status_code != 200:
+            logger.warning("Google scrape returned %d", resp.status_code)
+            return results
+    except requests.RequestException as exc:
+        logger.warning("Google scrape failed: %s", exc)
+        return results
+
+    soup = BeautifulSoup(resp.text, "lxml")
+    seen_hosts: set[str] = set()
+
+    for a_tag in soup.select("a[href^='http']"):
+        href = a_tag.get("href", "")
+        parsed = urlparse(href)
+        if not parsed.netloc:
+            continue
+        if any(g in parsed.netloc for g in ("google.", "googleapis.", "gstatic.", "youtube.")):
+            continue
+        if parsed.netloc in seen_hosts:
+            continue
+        seen_hosts.add(parsed.netloc)
+
+        title = a_tag.get_text(strip=True)[:200]
+        if not title or len(title) < 3:
+            title = parsed.netloc
+        results.append({"title": title, "url": href})
+        if len(results) >= max_results:
+            break
+
+    logger.info("Google scrape returned %d results for: %s", len(results), query)
+    return results
+
 
 _ENGINES = [
     ("Brave", _search_brave),
     ("DDG API", _search_ddg_api),
     ("DDG HTML", _search_duckduckgo_html),
+    ("Google", _search_google_scrape),
 ]
 
 
@@ -452,9 +505,11 @@ def discover_companies(
     directory_urls: list[str] = []
 
     # Phase 1: Search engine results — collect direct companies + directory URLs
-    for q in queries:
+    for qi, q in enumerate(queries):
         if len(companies) >= max_results:
             break
+        if qi > 0:
+            time.sleep(3)  # extra delay between query variations to avoid 429
         raw_results = _search_with_fallback(q, max_results * 2)
         time.sleep(CRAWL_DELAY)
 
