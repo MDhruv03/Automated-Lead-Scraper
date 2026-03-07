@@ -104,55 +104,7 @@
     <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Locations</h2>
     <canvas id="cityChart" height="200"></canvas>
   </div>
-
-  <!-- Discovery Timeline -->
-  <div class="card p-5">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Discovery Funnel by Job</h2>
-    <canvas id="timelineChart" height="200"></canvas>
-  </div>
 </div>
-
-<!-- ─── Top Leads ─────────────────────────────────────────────────── -->
-{% if top_leads %}
-<div class="card overflow-hidden mb-6">
-  <div class="px-5 pt-5 pb-3">
-    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Top Leads</h2>
-  </div>
-  <div class="overflow-x-auto">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-brand-100 dark:border-white/[0.06] text-left text-[11px] font-medium uppercase tracking-wider text-brand-400">
-          <th class="px-5 py-2.5">#</th>
-          <th class="px-5 py-2.5">Company</th>
-          <th class="px-5 py-2.5">Email</th>
-          <th class="px-5 py-2.5">Phone</th>
-          <th class="px-5 py-2.5 text-right">Score</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-brand-50 dark:divide-white/[0.04]">
-        {% for lead in top_leads %}
-        <tr class="hover:bg-brand-50/50 dark:hover:bg-white/[0.02] transition-colors">
-          <td class="px-5 py-2.5 text-brand-400 tabular-nums">{{ loop.index }}</td>
-          <td class="px-5 py-2.5 font-medium dark:text-white truncate max-w-[12rem]">{{ lead.company.name if lead.company else '—' }}</td>
-          <td class="px-5 py-2.5 text-brand-500 dark:text-zinc-400 truncate max-w-[14rem]">
-            {% if lead.email %}
-            <span class="{% if lead.email_valid %}text-emerald-600 dark:text-emerald-400{% endif %}">{{ lead.email }}</span>
-            {% else %}—{% endif %}
-          </td>
-          <td class="px-5 py-2.5 text-brand-500 dark:text-zinc-400">{{ lead.phone or '—' }}</td>
-          <td class="px-5 py-2.5 text-right">
-            <span class="inline-flex min-w-[2.5rem] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold
-              {% if lead.lead_score >= 70 %}bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400
-              {% elif lead.lead_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400
-              {% else %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% endif %}">{{ lead.lead_score|int }}</span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endif %}
 
 {% endif %}
 {% endblock %}
@@ -187,16 +139,18 @@ const tooltip = {
 const noLegend = { legend: { display: false } };
 
 // ── Score Distribution ───────────────────────────────────────────
+const scoreData = {{ score_data | safe }};
+const scoreColors = scoreData.map(function(_, i) {
+  var c = ['#ef4444','#ef4444','#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b','#10b981','#10b981','#14b8a6'];
+  return c[i] || '#14b8a6';
+});
 new Chart(document.getElementById('scoreChart'), {
   type: 'bar',
   data: {
     labels: {{ score_labels | safe }},
     datasets: [{
-      data: {{ score_data | safe }},
-      backgroundColor: {{ score_data | safe }}.map((_, i) => {
-        const colors = ['#ef4444','#ef4444','#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b','#10b981','#10b981','#14b8a6'];
-        return colors[i] || '#14b8a6';
-      }),
+      data: scoreData,
+      backgroundColor: scoreColors,
       borderRadius: 4,
       borderSkipped: false,
       maxBarThickness: 36,
@@ -212,34 +166,35 @@ new Chart(document.getElementById('scoreChart'), {
   }
 });
 
-// ── Industry Breakdown ───────────────────────────────────────────
+// ── Industry Breakdown (horizontal bar) ──────────────────────────
 new Chart(document.getElementById('industryChart'), {
-  type: 'doughnut',
+  type: 'bar',
   data: {
     labels: {{ industry_labels | safe }},
     datasets: [{
       data: {{ industry_data | safe }},
       backgroundColor: PALETTE,
-      borderWidth: 0,
-      hoverOffset: 6,
+      borderRadius: 4,
+      borderSkipped: false,
+      maxBarThickness: 22,
     }]
   },
   options: {
+    indexAxis: 'y',
     responsive: true,
-    cutout: '60%',
-    plugins: {
-      tooltip,
-      legend: { position: 'right', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } }
+    plugins: { ...noLegend, tooltip },
+    scales: {
+      x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
     }
   }
 });
 
 // ── City Distribution ────────────────────────────────────────────
-const cityLabels = {{ city_labels | safe }};
 new Chart(document.getElementById('cityChart'), {
   type: 'bar',
   data: {
-    labels: cityLabels,
+    labels: {{ city_labels | safe }},
     datasets: [{
       data: {{ city_data | safe }},
       backgroundColor: '#06b6d4',
@@ -255,45 +210,6 @@ new Chart(document.getElementById('cityChart'), {
     scales: {
       x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
       y: { grid: { display: false } }
-    }
-  }
-});
-
-// ── Discovery Funnel ─────────────────────────────────────────────
-new Chart(document.getElementById('timelineChart'), {
-  type: 'bar',
-  data: {
-    labels: {{ timeline_labels | safe }},
-    datasets: [
-      {
-        label: 'Discovered',
-        data: {{ timeline_discovered | safe }},
-        backgroundColor: isDark ? 'rgba(20,184,166,0.15)' : 'rgba(20,184,166,0.2)',
-        borderColor: '#14b8a6',
-        borderWidth: 1,
-        borderRadius: 4,
-        borderSkipped: false,
-        maxBarThickness: 24,
-      },
-      {
-        label: 'Saved',
-        data: {{ timeline_saved | safe }},
-        backgroundColor: '#14b8a6',
-        borderRadius: 4,
-        borderSkipped: false,
-        maxBarThickness: 24,
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    plugins: {
-      tooltip,
-      legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } }
-    },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
-      x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } }
     }
   }
 });

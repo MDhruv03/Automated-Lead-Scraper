@@ -6,8 +6,8 @@ import json
 from collections import Counter
 
 from fastapi import APIRouter, Request, Depends
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, case
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app.database import get_db
 from app.models.company import Company
@@ -84,40 +84,6 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
         .all()
     )
 
-    # ── Discovery timeline (last 15 completed jobs) ───────────────────
-    jobs = (
-        db.query(Job)
-        .filter(Job.status == "completed")
-        .order_by(Job.created_at.desc())
-        .limit(15)
-        .all()
-    )
-    timeline = []
-    for j in reversed(jobs):
-        lead_count = (
-            db.query(func.count(Lead.id))
-            .join(Company, Lead.company_id == Company.id)
-            .filter(Company.job_id == j.id)
-            .scalar()
-            or 0
-        )
-        timeline.append(
-            {
-                "label": j.query[:18] if j.query else "?",
-                "discovered": j.total_companies or 0,
-                "saved": lead_count,
-            }
-        )
-
-    # ── Top 10 leads ──────────────────────────────────────────────────
-    top_leads = (
-        db.query(Lead)
-        .options(joinedload(Lead.company))
-        .order_by(Lead.lead_score.desc())
-        .limit(10)
-        .all()
-    )
-
     # ── Avg job duration ──────────────────────────────────────────────
     avg_duration = (
         db.query(func.avg(Job.duration_seconds))
@@ -156,10 +122,5 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
             "industry_data": json.dumps([r[1] for r in industry_rows]),
             "city_labels": json.dumps([r[0] for r in city_rows]),
             "city_data": json.dumps([r[1] for r in city_rows]),
-            "timeline_labels": json.dumps([t["label"] for t in timeline]),
-            "timeline_discovered": json.dumps([t["discovered"] for t in timeline]),
-            "timeline_saved": json.dumps([t["saved"] for t in timeline]),
-            # top leads
-            "top_leads": top_leads,
         },
     )
