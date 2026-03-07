@@ -1,5 +1,9 @@
 """Export route – download leads as Excel."""
 
+from __future__ import annotations
+
+import json
+
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, joinedload
@@ -24,12 +28,23 @@ async def export_leads(db: Session = Depends(get_db)):
         .all()
     )
 
-    rows = [
-        {
+    rows = []
+    for l in leads:
+        extra = ""
+        if l.extra_emails:
+            try:
+                extras = json.loads(l.extra_emails)
+                if isinstance(extras, list):
+                    extra = ", ".join(extras)
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        rows.append({
             "Company Name": l.company.name if l.company else "",
             "Website": l.company.website if l.company else "",
             "Domain": l.company.domain if l.company else "",
             "Email": l.email or "",
+            "Extra Emails": extra,
             "Email Valid": "Yes" if l.email_valid else "No",
             "Contact Role": l.role or "",
             "Phone": l.phone or "",
@@ -41,12 +56,10 @@ async def export_leads(db: Session = Depends(get_db)):
             "Employee Estimate": l.company.employee_estimate if l.company else "",
             "Lead Score": l.lead_score,
             "Source URL": l.source_url or "",
-        }
-        for l in leads
-    ]
+        })
 
     _cols = [
-        "Company Name", "Website", "Domain", "Email", "Email Valid",
+        "Company Name", "Website", "Domain", "Email", "Extra Emails", "Email Valid",
         "Contact Role", "Phone", "LinkedIn", "Address", "Industry", "City",
         "Tech Stack", "Employee Estimate", "Lead Score", "Source URL",
     ]

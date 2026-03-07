@@ -34,7 +34,7 @@
     <!-- Pipeline Stage Visualization -->
     <div class="mb-8">
       <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-400">Pipeline Stages</p>
-      <div class="flex items-center justify-between" id="pipeline-stages">
+      <div class="flex items-center justify-between overflow-x-auto pb-1" id="pipeline-stages">
         {% set stages = ["queued", "discovering", "crawling", "extracting", "enriching", "scoring", "completed"] %}
         {% set current_stage = job.current_stage or ("completed" if job.status == "completed" else "queued") %}
         {% set stage_reached = false %}

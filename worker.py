@@ -48,7 +48,7 @@ from app.services.enrichment_service import enrich
 from app.services.scoring_service import score_lead, validate_email
 from app.services.dedupe_service import deduplicate_emails
 from app.services.techdetect_service import detect_technologies, detect_from_headers, extract_meta_info, estimate_company_size
-from app.services.validation_service import validate_business, get_location_terms, check_location_relevance
+from app.services.validation_service import validate_business, get_location_terms, check_location_relevance, check_negative_industry
 from app.utils.email_utils import classify_email_role
 from app.utils.text_utils import clean_html_text
 
@@ -250,6 +250,12 @@ def run_local_pipeline(
                 # ── Quality Gate 3: Industry relevance ────────────────────
                 industry_kw_present = _has_industry_relevance(full_text, industry_kws)
                 if not industry_kw_present and industry_kws:
+                    continue
+
+                # ── Quality Gate 3b: Negative industry filter ─────────────
+                neg_reject, neg_reason = check_negative_industry(full_text, query)
+                if neg_reject:
+                    logger.info("SKIP (negative industry: %s) %s", neg_reason, disc.domain)
                     continue
 
                 # ── Extract contacts ──────────────────────────────────────

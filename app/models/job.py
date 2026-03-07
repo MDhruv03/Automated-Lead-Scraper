@@ -32,6 +32,11 @@ class Job(Base):
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # Per-job pipeline settings (user-configurable at search time)
+    max_companies = Column(Integer, default=30)
+    max_pages = Column(Integer, default=5)
+    min_score = Column(Integer, default=40)
+
     @property
     def stage_index(self) -> int:
         try:

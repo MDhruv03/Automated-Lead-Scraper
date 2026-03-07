@@ -10,21 +10,37 @@ from app.database import get_db
 from app.models.job import Job
 from app.models.company import Company
 from app.models.lead import Lead
-from app.config import MAX_COMPANIES_PER_JOB
 
 router = APIRouter()
+
+# Default limits (used as fallback if user doesn't specify)
+_DEFAULT_MAX_COMPANIES = 30
+_DEFAULT_MAX_PAGES = 5
+_DEFAULT_MIN_SCORE = 40
 
 
 class SearchRequest(BaseModel):
     industry: str = Field(..., min_length=2, max_length=200)
     location: str = Field(..., min_length=2, max_length=200)
+    max_companies: int = Field(_DEFAULT_MAX_COMPANIES, ge=5, le=100)
+    max_pages: int = Field(_DEFAULT_MAX_PAGES, ge=1, le=10)
+    min_score: int = Field(_DEFAULT_MIN_SCORE, ge=0, le=100)
+
+
+def _search_ctx():
+    """Common template context for the search page."""
+    return {
+        "default_max_companies": _DEFAULT_MAX_COMPANIES,
+        "default_max_pages": _DEFAULT_MAX_PAGES,
+        "default_min_score": _DEFAULT_MIN_SCORE,
+    }
 
 
 # ── Page ──────────────────────────────────────────────────────────────────────
 @router.get("/search")
 async def search_page(request: Request):
     return request.app.state.templates.TemplateResponse(
-        "search.html", {"request": request, "max_results": MAX_COMPANIES_PER_JOB}
+        "search.html", {"request": request, **_search_ctx()}
     )
 
 
@@ -41,10 +57,35 @@ async def start_search(
     if not industry or not location:
         return request.app.state.templates.TemplateResponse(
             "search.html",
-            {"request": request, "error": "Both fields are required.", "max_results": MAX_COMPANIES_PER_JOB},
+            {"request": request, "error": "Both fields are required.", **_search_ctx()},
         )
 
-    job = Job(query=industry, location=location)
+    # Parse optional settings from form
+    try:
+        max_companies = int(form.get("max_companies", _DEFAULT_MAX_COMPANIES))
+        max_companies = max(5, min(100, max_companies))
+    except (ValueError, TypeError):
+        max_companies = _DEFAULT_MAX_COMPANIES
+
+    try:
+        max_pages = int(form.get("max_pages", _DEFAULT_MAX_PAGES))
+        max_pages = max(1, min(10, max_pages))
+    except (ValueError, TypeError):
+        max_pages = _DEFAULT_MAX_PAGES
+
+    try:
+        min_score = int(form.get("min_score", _DEFAULT_MIN_SCORE))
+        min_score = max(0, min(100, min_score))
+    except (ValueError, TypeError):
+        min_score = _DEFAULT_MIN_SCORE
+
+    job = Job(
+        query=industry,
+        location=location,
+        max_companies=max_companies,
+        max_pages=max_pages,
+        min_score=min_score,
+    )
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -59,7 +100,13 @@ async def api_start_search(
     payload: SearchRequest,
     db: Session = Depends(get_db),
 ):
-    job = Job(query=payload.industry, location=payload.location)
+    job = Job(
+        query=payload.industry,
+        location=payload.location,
+        max_companies=payload.max_companies,
+        max_pages=payload.max_pages,
+        min_score=payload.min_score,
+    )
     db.add(job)
     db.commit()
     db.refresh(job)

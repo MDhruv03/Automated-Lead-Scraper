@@ -57,10 +57,11 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
     low_q = db.query(func.count(Lead.id)).filter(Lead.lead_score < 40).scalar() or 0
 
     # ── Score distribution (buckets of 10) ────────────────────────────
-    scores = db.query(Lead.lead_score).all()
+    scores = db.query(Lead.lead_score).filter(Lead.lead_score.isnot(None)).all()
     buckets = {f"{i}-{i+9}": 0 for i in range(0, 100, 10)}
     for (score,) in scores:
-        key = f"{(score // 10) * 10}-{(score // 10) * 10 + 9}"
+        s = int(score)
+        key = f"{(s // 10) * 10}-{(s // 10) * 10 + 9}"
         if key in buckets:
             buckets[key] += 1
 

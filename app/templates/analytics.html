@@ -2,6 +2,25 @@
 {% block title %}Analytics · LeadPulse{% endblock %}
 
 {% block content %}
+<style>
+  .stat-card { position: relative; overflow: hidden; border-radius: 1rem; border: 1px solid rgba(228,228,231,0.5); background: rgba(255,255,255,0.80); backdrop-filter: blur(8px); transition: border-color .2s, transform .2s, box-shadow .2s; }
+  .dark .stat-card { border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0,0,0,0.08); border-color: rgba(161,161,170,0.4); }
+  .dark .stat-card:hover { box-shadow: 0 8px 25px -5px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.12); }
+  .stat-card .accent-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .stat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chart-card { border-radius: 1rem; border: 1px solid rgba(228,228,231,0.5); background: rgba(255,255,255,0.80); backdrop-filter: blur(8px); transition: border-color .2s; }
+  .dark .chart-card { border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
+  .chart-card:hover { border-color: rgba(161,161,170,0.4); }
+  .dark .chart-card:hover { border-color: rgba(255,255,255,0.12); }
+  .quality-seg { transition: width .8s cubic-bezier(.4,0,.2,1); }
+  @keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .stat-value { animation: countUp .5s ease-out both; }
+  .stat-card:nth-child(2) .stat-value { animation-delay: 50ms; }
+  .stat-card:nth-child(3) .stat-value { animation-delay: 100ms; }
+  .stat-card:nth-child(4) .stat-value { animation-delay: 150ms; }
+</style>
+
 <div class="mb-8">
   <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Analytics</h1>
   <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Performance metrics and lead intelligence overview.</p>
@@ -15,93 +34,194 @@
 {% else %}
 
 <!-- ─── Stat Cards Row 1 ──────────────────────────────────────────── -->
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-4">
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Total Leads</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-3">
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-teal-400 to-cyan-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Total Leads</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
+      </div>
+      <div class="stat-icon bg-teal-50 dark:bg-teal-500/10">
+        <svg class="h-4.5 w-4.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Companies</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-cyan-400 to-blue-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Companies</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
+      </div>
+      <div class="stat-icon bg-cyan-50 dark:bg-cyan-500/10">
+        <svg class="h-4.5 w-4.5 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Avg Score</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums text-accent-600">{{ avg_score }}</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-teal-400 to-emerald-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Avg Score</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums text-teal-600 dark:text-teal-400">{{ avg_score }}</p>
+      </div>
+      <div class="stat-icon bg-teal-50 dark:bg-teal-500/10">
+        <svg class="h-4.5 w-4.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Best Score</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums text-emerald-600">{{ max_score }}</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-emerald-400 to-green-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Best Score</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{{ max_score }}</p>
+      </div>
+      <div class="stat-icon bg-emerald-50 dark:bg-emerald-500/10">
+        <svg class="h-4.5 w-4.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-2.77.896c-.97.082-1.96.082-2.93 0a6.022 6.022 0 01-2.77-.897"/></svg>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- ─── Stat Cards Row 2 ──────────────────────────────────────────── -->
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Email Validity</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ email_rate }}%</p>
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-violet-400 to-purple-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Email Rate</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ email_rate }}<span class="text-sm font-semibold text-brand-400">%</span></p>
+      </div>
+      <div class="stat-icon bg-violet-50 dark:bg-violet-500/10">
+        <svg class="h-4.5 w-4.5 text-violet-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Has Phone</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ phone_rate }}%</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-amber-400 to-orange-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Has Phone</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ phone_rate }}<span class="text-sm font-semibold text-brand-400">%</span></p>
+      </div>
+      <div class="stat-icon bg-amber-50 dark:bg-amber-500/10">
+        <svg class="h-4.5 w-4.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Jobs Done</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ completed_jobs }}</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-blue-400 to-indigo-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Jobs Done</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ completed_jobs }}</p>
+      </div>
+      <div class="stat-icon bg-blue-50 dark:bg-blue-500/10">
+        <svg class="h-4.5 w-4.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+    </div>
   </div>
-  <div class="card p-4">
-    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Avg Duration</p>
-    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ avg_duration }}</p>
+  <div class="stat-card p-4">
+    <div class="accent-bar bg-gradient-to-r from-rose-400 to-pink-400"></div>
+    <div class="flex items-start justify-between">
+      <div>
+        <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Avg Duration</p>
+        <p class="stat-value mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ avg_duration }}</p>
+      </div>
+      <div class="stat-icon bg-rose-50 dark:bg-rose-500/10">
+        <svg class="h-4.5 w-4.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- ─── Quality Tiers ─────────────────────────────────────────────── -->
-<div class="card p-5 mb-8">
-  <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Lead Quality Breakdown</h2>
-  <div class="flex items-center gap-3">
-    {% set total_q = high_q + mid_q + low_q %}
+{% set total_q = high_q + mid_q + low_q %}
+<div class="chart-card p-5 mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Lead Quality Breakdown</h2>
     {% if total_q > 0 %}
-    <div class="flex h-3 flex-1 overflow-hidden rounded-full bg-brand-100 dark:bg-zinc-800">
-      {% if high_q %}
-      <div class="h-full bg-emerald-500 transition-all" style="width:{{ (high_q / total_q * 100)|round(1) }}%" title="High quality"></div>
-      {% endif %}
-      {% if mid_q %}
-      <div class="h-full bg-amber-400 transition-all" style="width:{{ (mid_q / total_q * 100)|round(1) }}%" title="Medium quality"></div>
-      {% endif %}
-      {% if low_q %}
-      <div class="h-full bg-red-400 transition-all" style="width:{{ (low_q / total_q * 100)|round(1) }}%" title="Low quality"></div>
-      {% endif %}
-    </div>
-    {% else %}
-    <div class="flex h-3 flex-1 rounded-full bg-brand-100 dark:bg-zinc-800"></div>
+    <span class="text-[11px] font-medium text-brand-400 dark:text-zinc-500">{{ total_q }} total</span>
     {% endif %}
   </div>
-  <div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs">
-    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span> High (70+) <span class="font-semibold dark:text-white">{{ high_q }}</span></span>
-    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-amber-400"></span> Medium (40-69) <span class="font-semibold dark:text-white">{{ mid_q }}</span></span>
-    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-red-400"></span> Low (&lt;40) <span class="font-semibold dark:text-white">{{ low_q }}</span></span>
+  {% if total_q > 0 %}
+  <div class="flex h-4 overflow-hidden rounded-full bg-brand-100 dark:bg-zinc-800/80">
+    {% if high_q %}
+    <div class="quality-seg h-full bg-gradient-to-r from-emerald-400 to-emerald-500 relative group" style="width:{{ (high_q / total_q * 100)|round(1) }}%">
+      <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    </div>
+    {% endif %}
+    {% if mid_q %}
+    <div class="quality-seg h-full bg-gradient-to-r from-amber-300 to-amber-400 relative group" style="width:{{ (mid_q / total_q * 100)|round(1) }}%">
+      <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    </div>
+    {% endif %}
+    {% if low_q %}
+    <div class="quality-seg h-full bg-gradient-to-r from-red-400 to-red-500 relative group" style="width:{{ (low_q / total_q * 100)|round(1) }}%">
+      <div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    </div>
+    {% endif %}
   </div>
+  <!-- Tier detail cards -->
+  <div class="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+    <div class="rounded-xl bg-emerald-50 dark:bg-emerald-500/[0.08] px-3 py-2.5 text-center">
+      <p class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ high_q }}</p>
+      <p class="text-[10px] font-medium uppercase tracking-wider text-emerald-600/70 dark:text-emerald-400/60">High 70+</p>
+      <p class="mt-0.5 text-[10px] text-emerald-600/50 dark:text-emerald-400/40">{{ (high_q / total_q * 100)|round(0)|int }}%</p>
+    </div>
+    <div class="rounded-xl bg-amber-50 dark:bg-amber-500/[0.08] px-3 py-2.5 text-center">
+      <p class="text-lg font-bold text-amber-600 dark:text-amber-400">{{ mid_q }}</p>
+      <p class="text-[10px] font-medium uppercase tracking-wider text-amber-600/70 dark:text-amber-400/60">Medium 40-69</p>
+      <p class="mt-0.5 text-[10px] text-amber-600/50 dark:text-amber-400/40">{{ (mid_q / total_q * 100)|round(0)|int }}%</p>
+    </div>
+    <div class="rounded-xl bg-red-50 dark:bg-red-500/[0.08] px-3 py-2.5 text-center">
+      <p class="text-lg font-bold text-red-600 dark:text-red-400">{{ low_q }}</p>
+      <p class="text-[10px] font-medium uppercase tracking-wider text-red-600/70 dark:text-red-400/60">Low &lt;40</p>
+      <p class="mt-0.5 text-[10px] text-red-600/50 dark:text-red-400/40">{{ (low_q / total_q * 100)|round(0)|int }}%</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="flex h-4 rounded-full bg-brand-100 dark:bg-zinc-800/80"></div>
+  <p class="mt-3 text-xs text-brand-400 dark:text-zinc-500">No scored leads yet.</p>
+  {% endif %}
 </div>
 
-<!-- ─── Charts Row 1 ──────────────────────────────────────────────── -->
+<!-- ─── Charts ────────────────────────────────────────────────────── -->
 <div class="grid gap-5 lg:grid-cols-2 mb-5">
   <!-- Score Distribution -->
-  <div class="card p-5">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Score Distribution</h2>
+  <div class="chart-card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-cyan-500">
+        <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      </div>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Score Distribution</h2>
+    </div>
     <canvas id="scoreChart" height="200"></canvas>
   </div>
 
   <!-- Industry Breakdown -->
-  <div class="card p-5">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Industry Breakdown</h2>
+  <div class="chart-card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-violet-400 to-purple-500">
+        <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 0-.008 9.128"/></svg>
+      </div>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Industry Breakdown</h2>
+    </div>
     <canvas id="industryChart" height="200"></canvas>
   </div>
 </div>
 
-<!-- ─── Charts Row 2 ──────────────────────────────────────────────── -->
 <div class="grid gap-5 lg:grid-cols-2 mb-5">
   <!-- City Distribution -->
-  <div class="card p-5">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Locations</h2>
+  <div class="chart-card p-5">
+    <div class="flex items-center gap-2 mb-4">
+      <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500">
+        <svg class="h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z"/></svg>
+      </div>
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Locations</h2>
+    </div>
     <canvas id="cityChart" height="200"></canvas>
   </div>
 </div>
@@ -114,7 +234,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const isDark = document.documentElement.classList.contains('dark');
-const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
 const textColor = isDark ? '#a1a1aa' : '#71717a';
 Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
@@ -122,97 +242,141 @@ Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 11;
 
 const PALETTE = [
-  '#14b8a6','#06b6d4','#f59e0b','#10b981','#ef4444',
-  '#64748b','#f97316','#0891b2','#84cc16','#0d9488'
+  '#14b8a6','#06b6d4','#8b5cf6','#f59e0b','#10b981',
+  '#ec4899','#f97316','#0891b2','#84cc16','#0d9488'
 ];
+
+function makeGradient(ctx, c1, c2, vertical) {
+  var g = vertical
+    ? ctx.createLinearGradient(0, 0, 0, ctx.canvas.height)
+    : ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
+  g.addColorStop(0, c1);
+  g.addColorStop(1, c2);
+  return g;
+}
+
 const tooltip = {
-  backgroundColor: isDark ? '#27272a' : '#fff',
+  backgroundColor: isDark ? '#1c1c1e' : '#fff',
   titleColor: isDark ? '#fff' : '#18181b',
   bodyColor: isDark ? '#a1a1aa' : '#52525b',
-  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
   borderWidth: 1,
-  cornerRadius: 8,
-  padding: 10,
+  cornerRadius: 10,
+  padding: 12,
   displayColors: true,
   boxPadding: 4,
+  caretSize: 6,
+  titleFont: { weight: '600' },
 };
 const noLegend = { legend: { display: false } };
 
 // ── Score Distribution ───────────────────────────────────────────
-const scoreData = {{ score_data | safe }};
-const scoreColors = scoreData.map(function(_, i) {
-  var c = ['#ef4444','#ef4444','#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b','#10b981','#10b981','#14b8a6'];
-  return c[i] || '#14b8a6';
-});
-new Chart(document.getElementById('scoreChart'), {
-  type: 'bar',
-  data: {
-    labels: {{ score_labels | safe }},
-    datasets: [{
-      data: scoreData,
-      backgroundColor: scoreColors,
-      borderRadius: 4,
-      borderSkipped: false,
-      maxBarThickness: 36,
-    }]
-  },
-  options: {
-    responsive: true,
-    plugins: { ...noLegend, tooltip },
-    scales: {
-      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
-      x: { grid: { display: false } }
+var scoreData = {{ score_data | safe }};
+var scoreLabels = {{ score_labels | safe }};
+(function() {
+  var ctx = document.getElementById('scoreChart').getContext('2d');
+  var colors = scoreData.map(function(_, i) {
+    var map = [
+      ['#ef4444','#f87171'], ['#ef4444','#f87171'],
+      ['#ef4444','#f87171'], ['#f59e0b','#fbbf24'],
+      ['#f59e0b','#fbbf24'], ['#f59e0b','#fbbf24'],
+      ['#10b981','#34d399'], ['#10b981','#34d399'],
+      ['#14b8a6','#2dd4bf'], ['#14b8a6','#2dd4bf']
+    ];
+    var pair = map[i] || ['#14b8a6','#2dd4bf'];
+    var g = ctx.createLinearGradient(0, ctx.canvas.height, 0, 0);
+    g.addColorStop(0, pair[0]);
+    g.addColorStop(1, pair[1]);
+    return g;
+  });
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: scoreLabels,
+      datasets: [{
+        data: scoreData,
+        backgroundColor: colors,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 36,
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: { ...noLegend, tooltip: tooltip },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+        x: { grid: { display: false } }
+      }
     }
-  }
-});
+  });
+})();
 
 // ── Industry Breakdown (horizontal bar) ──────────────────────────
-new Chart(document.getElementById('industryChart'), {
-  type: 'bar',
-  data: {
-    labels: {{ industry_labels | safe }},
-    datasets: [{
-      data: {{ industry_data | safe }},
-      backgroundColor: PALETTE,
-      borderRadius: 4,
-      borderSkipped: false,
-      maxBarThickness: 22,
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { ...noLegend, tooltip },
-    scales: {
-      x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
-      y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+(function() {
+  var ctx = document.getElementById('industryChart').getContext('2d');
+  var bgs = PALETTE.map(function(c) {
+    var g = ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
+    g.addColorStop(0, c);
+    g.addColorStop(1, c + '99');
+    return g;
+  });
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ industry_labels | safe }},
+      datasets: [{
+        data: {{ industry_data | safe }},
+        backgroundColor: bgs,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 22,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: { ...noLegend, tooltip: tooltip },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
     }
-  }
-});
+  });
+})();
 
 // ── City Distribution ────────────────────────────────────────────
-new Chart(document.getElementById('cityChart'), {
-  type: 'bar',
-  data: {
-    labels: {{ city_labels | safe }},
-    datasets: [{
-      data: {{ city_data | safe }},
-      backgroundColor: '#06b6d4',
-      borderRadius: 4,
-      borderSkipped: false,
-      maxBarThickness: 28,
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { ...noLegend, tooltip },
-    scales: {
-      x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
-      y: { grid: { display: false } }
+(function() {
+  var ctx = document.getElementById('cityChart').getContext('2d');
+  var g = ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
+  g.addColorStop(0, '#06b6d4');
+  g.addColorStop(1, '#0891b2');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: {{ city_labels | safe }},
+      datasets: [{
+        data: {{ city_data | safe }},
+        backgroundColor: g,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 28,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      animation: { duration: 800, easing: 'easeOutQuart' },
+      plugins: { ...noLegend, tooltip: tooltip },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+        y: { grid: { display: false } }
+      }
     }
-  }
-});
+  });
+})();
 </script>
 {% endif %}
 {% endblock %}

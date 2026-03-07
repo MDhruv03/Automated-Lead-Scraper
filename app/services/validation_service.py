@@ -105,6 +105,65 @@ _NON_BUSINESS_SIGNALS = [
 ]
 
 
+# ── Negative-industry filter ──────────────────────────────────────────────────
+# These indicate the site is an agency / service-provider / product page rather
+# than an actual company in the searched industry.
+
+_AGENCY_KEYWORDS = [
+    "seo agency", "seo services", "seo company",
+    "digital marketing agency", "digital marketing services", "digital marketing company",
+    "marketing agency", "marketing services", "marketing company",
+    "advertising agency", "ad agency", "media agency",
+    "recruiting agency", "recruitment agency", "staffing agency",
+    "staffing company", "recruitment firm", "recruiting firm",
+    "consulting firm", "consulting agency", "management consulting",
+    "lead generation services", "lead generation company",
+    "content marketing services", "social media marketing",
+    "ppc management", "ppc agency", "link building",
+    "web design agency", "web development agency",
+    "branding agency", "creative agency", "pr agency",
+    "public relations firm",
+]
+
+_INSURANCE_KEYWORDS = [
+    "health insurance plans", "insurance premium", "buy insurance",
+    "insurance quote", "compare plans", "insurance policy",
+    "insurance coverage", "term insurance", "life insurance",
+    "claim settlement", "premium calculator",
+]
+
+
+def check_negative_industry(text: str, query_industry: str) -> tuple[bool, str]:
+    """Check if the crawled text contains strong signals that the site is an
+    agency, recruiter, or insurance-product page rather than a company in the
+    searched industry.
+
+    Returns:
+        (should_reject, reason)  – True means the site should be discarded.
+    """
+    text_lower = text.lower()
+    query_lower = query_industry.lower()
+
+    # Don't apply agency filter if the user explicitly searches for marketing/seo etc.
+    skip_agency = any(k in query_lower for k in (
+        "marketing", "seo", "advertising", "recruiting", "staffing", "consulting",
+        "lead generation", "web design", "branding", "pr ", "public relations",
+    ))
+
+    if not skip_agency:
+        for kw in _AGENCY_KEYWORDS:
+            if kw in text_lower:
+                return True, f"agency keyword: {kw}"
+
+    # Insurance-product filter (skip if user searches for insurance)
+    if "insurance" not in query_lower:
+        for kw in _INSURANCE_KEYWORDS:
+            if kw in text_lower:
+                return True, f"insurance product: {kw}"
+
+    return False, ""
+
+
 def validate_business(html: str) -> tuple[bool, float, list[str]]:
     """Check if the HTML content belongs to a real business website.
 

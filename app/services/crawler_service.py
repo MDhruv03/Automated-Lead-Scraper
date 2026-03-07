@@ -91,11 +91,12 @@ def _fetch(url: str) -> CrawledPage | None:
     return None
 
 
-def crawl_website(website: str) -> List[CrawledPage]:
+def crawl_website(website: str, max_pages: int | None = None) -> List[CrawledPage]:
     """Crawl the homepage + fixed business sub-pages.
 
-    Returns up to MAX_PAGES_PER_SITE pages. Respects robots.txt.
+    Returns up to *max_pages* pages (default MAX_PAGES_PER_SITE). Respects robots.txt.
     """
+    limit = max_pages or MAX_PAGES_PER_SITE
     pages: list[CrawledPage] = []
     visited: set[str] = set()
 
@@ -112,7 +113,7 @@ def crawl_website(website: str) -> List[CrawledPage]:
     visited.add(home.url)
 
     for path in _BUSINESS_PATHS:
-        if len(pages) >= MAX_PAGES_PER_SITE:
+        if len(pages) >= limit:
             break
         candidate = urljoin(website, path)
         if candidate in visited:

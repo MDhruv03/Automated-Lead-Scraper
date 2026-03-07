@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
-from app.config import MIN_LEAD_SCORE, INDUSTRY_KEYWORDS
+from app.config import INDUSTRY_KEYWORDS
 from app.models.company import Company
 from app.models.lead import Lead
 from app.models.job import Job
@@ -26,7 +26,7 @@ from app.services.enrichment_service import enrich
 from app.services.scoring_service import score_lead, validate_email
 from app.services.dedupe_service import is_duplicate_company, is_duplicate_lead, deduplicate_emails
 from app.services.techdetect_service import detect_technologies, detect_from_headers, extract_meta_info, estimate_company_size
-from app.services.validation_service import validate_business, get_location_terms, check_location_relevance
+from app.services.validation_service import validate_business, get_location_terms, check_location_relevance, check_negative_industry
 from app.utils.email_utils import classify_email_role
 from app.utils.text_utils import clean_html_text
 
@@ -80,8 +80,13 @@ def run_pipeline(job_id: int) -> None:
         _set_stage(db, job, "discovering")
         _start_time = _time.monotonic()
 
+        # Per-job settings (fall back to sensible defaults)
+        job_max_companies = job.max_companies or 30
+        job_max_pages = job.max_pages or 5
+        job_min_score = job.min_score if job.min_score is not None else 40
+
         # ── Step 1: Discover companies ────────────────────────────────────
-        discovered = discover_companies(job.query, job.location)
+        discovered = discover_companies(job.query, job.location, max_results=job_max_companies)
         job.total_companies = len(discovered)
         _set_stage(db, job, "crawling")
 
@@ -168,6 +173,15 @@ def run_pipeline(job_id: int) -> None:
                 industry_kw_present = _has_industry_relevance(full_text, industry_kws)
                 if not industry_kw_present and industry_kws:
                     logger.info("SKIP (no industry relevance) %s", disc.domain)
+                    skipped_relevance += 1
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+
+                # ── Quality Gate 3b: Negative industry filter ─────────────
+                neg_reject, neg_reason = check_negative_industry(full_text, job.query)
+                if neg_reject:
+                    logger.info("SKIP (negative industry: %s) %s", neg_reason, disc.domain)
                     skipped_relevance += 1
                     job.processed_companies = idx
                     db.commit()

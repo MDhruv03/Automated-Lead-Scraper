@@ -65,7 +65,14 @@ async def pending_jobs(
         .all()
     )
     return [
-        {"id": j.id, "query": j.query, "location": j.location}
+        {
+            "id": j.id,
+            "query": j.query,
+            "location": j.location,
+            "max_companies": j.max_companies or 30,
+            "max_pages": j.max_pages or 5,
+            "min_score": j.min_score or 40,
+        }
         for j in jobs
     ]
 

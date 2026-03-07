@@ -221,7 +221,13 @@ def _is_bad_title(title: str) -> bool:
 _ARTICLE_URL_RE = re.compile(
     r"/(blog|article|news|post|story|guide|tutorial|how-to|tips|review|recipe"
     r"|top-\d+|best-|\d{4}/\d{2}/|report|analysis|ranking|survey|forecast"
-    r"|comparison|vs-|versus|statistics|trends|market-)",
+    r"|comparison|vs-|versus|statistics|trends|market-"
+    r"|health-insurance|life-insurance|insurance-plan|insurance-quote"
+    r"|careers|jobs|vacancies|salary|interview"
+    r"|wiki|faq|glossary|dictionary|webinar|podcast|press-release"
+    r"|white-paper|whitepaper|case-study|ebook|e-book"
+    r"|pricing|plans|demo|signup|sign-up|register|login|log-in"
+    r"|download|subscribe|newsletter)",
     re.I,
 )
 
@@ -280,27 +286,16 @@ def _is_relevant_to_query(title: str, industry: str, location: str) -> bool:
 # ── Search engines ───────────────────────────────────────────────────────────
 
 def _search_brave(query: str, max_results: int) -> List[dict]:
-    """Scrape Brave Search HTML results with retry on 429."""
+    """Scrape Brave Search HTML results."""
     results: list[dict] = []
     encoded = quote_plus(query)
     url = f"https://search.brave.com/search?q={encoded}"
 
-    resp = None
-    for attempt in range(3):
-        try:
-            resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
-            if resp.status_code == 429:
-                wait = 3 * (attempt + 1)
-                logger.info("Brave 429 – retrying in %ds (attempt %d/3)", wait, attempt + 1)
-                time.sleep(wait)
-                continue
-            resp.raise_for_status()
-            break
-        except requests.RequestException as exc:
-            logger.warning("Brave Search request failed: %s", exc)
-            return results
-    if resp is None or resp.status_code != 200:
-        logger.warning("Brave Search exhausted retries for: %s", query)
+    try:
+        resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Brave Search request failed: %s", exc)
         return results
 
     soup = BeautifulSoup(resp.text, "lxml")
@@ -504,7 +499,7 @@ def discover_companies(
       2. For any directory/listing pages found, scrape them for individual company links
       3. Apply relevance + domain + title filters, then deduplicate
     """
-    max_results = min(max_results or MAX_COMPANIES_PER_JOB, MAX_COMPANIES_PER_JOB)
+    max_results = max_results or MAX_COMPANIES_PER_JOB
 
     queries = [
         f"{industry} companies in {location}",
