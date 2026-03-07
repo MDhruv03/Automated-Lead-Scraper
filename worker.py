@@ -37,7 +37,6 @@ except ImportError:
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from app.config import (
-    MIN_LEAD_SCORE,
     INDUSTRY_KEYWORDS,
     WORKER_SECRET as _DEFAULT_SECRET,
 )
@@ -188,6 +187,9 @@ def run_local_pipeline(
     job_id: int,
     query: str,
     location: str,
+    max_companies: int = 30,
+    max_pages: int = 5,
+    min_score: int = 40,
 ) -> None:
     """Execute the full discovery pipeline locally and push results to server."""
     start = time.monotonic()
@@ -195,7 +197,7 @@ def run_local_pipeline(
     try:
         # ── Step 1: Discover ──────────────────────────────────────────────
         client.progress(job_id, "discovering", 0, 0)
-        discovered = discover_companies(query, location)
+        discovered = discover_companies(query, location, max_results=max_companies)
         total = len(discovered)
         logger.info("Discovered %d companies for '%s' in '%s'", total, query, location)
         client.progress(job_id, "crawling", total, 0)
@@ -224,7 +226,7 @@ def run_local_pipeline(
 
                 # ── Crawl ─────────────────────────────────────────────────
                 client.progress(job_id, "crawling", total, idx)
-                pages = crawl_website(disc.website)
+                pages = crawl_website(disc.website, max_pages=max_pages)
                 website_active = len(pages) > 0
                 has_contact_page = any(
                     kw in p.url.lower() for p in pages for kw in ("contact", "about", "team")
@@ -344,7 +346,7 @@ def run_local_pipeline(
                     )
                     best_score = best_breakdown.total
 
-                if best_score < MIN_LEAD_SCORE:
+                if best_score < min_score:
                     continue
 
                 # ── Collect single lead for this company ──────────────────
@@ -461,7 +463,15 @@ def main():
                 job = jobs[0]  # take oldest pending
                 logger.info("Claiming job %d: '%s' in '%s'", job["id"], job["query"], job["location"])
                 if client.claim(job["id"]):
-                    run_local_pipeline(client, job["id"], job["query"], job["location"])
+                    run_local_pipeline(
+                        client,
+                        job["id"],
+                        job["query"],
+                        job["location"],
+                        max_companies=job.get("max_companies", 30),
+                        max_pages=job.get("max_pages", 5),
+                        min_score=job.get("min_score", 40),
+                    )
                 else:
                     logger.warning("Could not claim job %d – may already be taken", job["id"])
             else:

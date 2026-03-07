@@ -2,84 +2,302 @@
 {% block title %}New Search · LeadPulse{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-xl">
-  <div class="mb-8 text-center">
-    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-brand-200/50 dark:border-white/[0.08]">
-      <svg class="h-6 w-6 text-brand-600 dark:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+<div class="mx-auto max-w-2xl">
+  <!-- Header -->
+  <div class="mb-10 text-center">
+    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-200/50 dark:border-white/[0.08] bg-gradient-to-br from-accent-500/10 to-cyan-500/10">
+      <svg class="h-7 w-7 text-accent-600 dark:text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
     </div>
     <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Discover Leads</h1>
-    <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Enter an industry and location to start collecting business leads.</p>
+    <p class="mt-2 text-sm text-brand-500 dark:text-brand-400 max-w-md mx-auto">Enter an industry and location to start collecting business leads. Tune the pipeline settings below for your needs.</p>
   </div>
 
   {% if error %}
-  <div class="mb-6 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+  <div class="mb-6 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
     {{ error }}
   </div>
   {% endif %}
 
-  <form method="POST" action="/search" class="space-y-5 card p-8" id="search-form">
-    <!-- Industry -->
-    <div>
-      <label for="industry" class="block text-xs font-semibold uppercase tracking-wider text-brand-500 mb-1.5">Industry / Niche</label>
-      <input
-        id="industry"
-        name="industry"
-        type="text"
-        required
-        autocomplete="off"
-        placeholder="e.g. SaaS, Fintech, Real Estate"
-        class="w-full rounded-full border border-brand-200/60 bg-white/50 px-5 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-white/25"
-      />
-      <div class="mt-2 flex flex-wrap gap-1.5" id="industry-suggestions">
-        {% for s in ["SaaS", "E-commerce", "Fintech", "Healthcare", "Real Estate", "EdTech", "Marketing Agency", "Cybersecurity"] %}
-        <button type="button" onclick="document.getElementById('industry').value='{{ s }}'" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-0.5 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
-        {% endfor %}
+  <form method="POST" action="/search" class="card p-8 space-y-8" id="search-form">
+
+    <!-- ─── Core Fields ─────────────────────────────────────────────── -->
+    <div class="space-y-5">
+      <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500">Search Query</h2>
+
+      <!-- Industry -->
+      <div>
+        <label for="industry" class="block text-sm font-medium text-brand-700 dark:text-brand-200 mb-1.5">Industry / Niche</label>
+        <input
+          id="industry"
+          name="industry"
+          type="text"
+          required
+          autocomplete="off"
+          placeholder="e.g. SaaS, Fintech, Real Estate"
+          class="w-full rounded-xl border border-brand-200/60 bg-white/50 px-4 py-3 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-accent-400"
+        />
+        <div class="mt-2.5 flex flex-wrap gap-1.5" id="industry-suggestions">
+          {% for s in ["SaaS", "E-commerce", "Fintech", "Healthcare", "Real Estate", "EdTech", "Marketing Agency", "Cybersecurity", "AI / ML", "Logistics"] %}
+          <button type="button" onclick="document.getElementById('industry').value='{{ s }}'; updateEstimate();" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-1 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div>
+        <label for="location" class="block text-sm font-medium text-brand-700 dark:text-brand-200 mb-1.5">Location</label>
+        <input
+          id="location"
+          name="location"
+          type="text"
+          required
+          autocomplete="off"
+          placeholder="e.g. Bangalore, New York, London"
+          class="w-full rounded-xl border border-brand-200/60 bg-white/50 px-4 py-3 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-accent-400"
+        />
+        <div class="mt-2.5 flex flex-wrap gap-1.5">
+          {% for s in ["New York", "San Francisco", "London", "Bangalore", "Berlin", "Toronto", "Mumbai", "Singapore"] %}
+          <button type="button" onclick="document.getElementById('location').value='{{ s }}'; updateEstimate();" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-1 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
+          {% endfor %}
+        </div>
       </div>
     </div>
 
-    <!-- Location -->
-    <div>
-      <label for="location" class="block text-xs font-semibold uppercase tracking-wider text-brand-500 mb-1.5">Location</label>
-      <input
-        id="location"
-        name="location"
-        type="text"
-        required
-        autocomplete="off"
-        placeholder="e.g. Bangalore, New York, London"
-        class="w-full rounded-full border border-brand-200/60 bg-white/50 px-5 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-white/25"
-      />
-      <div class="mt-2 flex flex-wrap gap-1.5">
-        {% for s in ["New York", "San Francisco", "London", "Bangalore", "Berlin", "Toronto"] %}
-        <button type="button" onclick="document.getElementById('location').value='{{ s }}'" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-0.5 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
-        {% endfor %}
+    <!-- ─── Pipeline Settings ───────────────────────────────────────── -->
+    <div class="space-y-5">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500">Pipeline Settings</h2>
+        <button type="button" onclick="resetDefaults()" class="text-[11px] font-medium text-brand-400 hover:text-brand-600 dark:text-zinc-500 dark:hover:text-zinc-300 transition">Reset defaults</button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Max Companies -->
+        <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-4">
+          <label for="max_companies" class="block text-xs font-semibold text-brand-500 dark:text-zinc-400 mb-1">Max Companies</label>
+          <p class="text-[10px] text-brand-400 dark:text-zinc-500 mb-3">How many companies to discover</p>
+          <input
+            id="max_companies"
+            name="max_companies"
+            type="number"
+            min="5" max="100" step="5"
+            value="{{ default_max_companies }}"
+            onchange="updateEstimate()"
+            oninput="updateEstimate()"
+            class="w-full rounded-lg border border-brand-200/60 bg-white dark:bg-white/5 px-3 py-2 text-sm font-semibold tabular-nums text-brand-900 dark:text-white dark:border-white/10 outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20"
+          />
+          <div class="mt-2 flex justify-between text-[10px] text-brand-400 dark:text-zinc-600">
+            <span>5</span><span>100</span>
+          </div>
+        </div>
+
+        <!-- Max Pages per Site -->
+        <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-4">
+          <label for="max_pages" class="block text-xs font-semibold text-brand-500 dark:text-zinc-400 mb-1">Pages per Site</label>
+          <p class="text-[10px] text-brand-400 dark:text-zinc-500 mb-3">Max pages to crawl per company</p>
+          <input
+            id="max_pages"
+            name="max_pages"
+            type="number"
+            min="1" max="10" step="1"
+            value="{{ default_max_pages }}"
+            onchange="updateEstimate()"
+            oninput="updateEstimate()"
+            class="w-full rounded-lg border border-brand-200/60 bg-white dark:bg-white/5 px-3 py-2 text-sm font-semibold tabular-nums text-brand-900 dark:text-white dark:border-white/10 outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20"
+          />
+          <div class="mt-2 flex justify-between text-[10px] text-brand-400 dark:text-zinc-600">
+            <span>1</span><span>10</span>
+          </div>
+        </div>
+
+        <!-- Min Lead Score -->
+        <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-4">
+          <label for="min_score" class="block text-xs font-semibold text-brand-500 dark:text-zinc-400 mb-1">Min Lead Score</label>
+          <p class="text-[10px] text-brand-400 dark:text-zinc-500 mb-3">Score threshold to keep a lead</p>
+          <input
+            id="min_score"
+            name="min_score"
+            type="number"
+            min="0" max="100" step="5"
+            value="{{ default_min_score }}"
+            onchange="updateEstimate()"
+            oninput="updateEstimate()"
+            class="w-full rounded-lg border border-brand-200/60 bg-white dark:bg-white/5 px-3 py-2 text-sm font-semibold tabular-nums text-brand-900 dark:text-white dark:border-white/10 outline-none focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20"
+          />
+          <div class="mt-2 flex justify-between text-[10px] text-brand-400 dark:text-zinc-600">
+            <span>0</span><span>100</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-3">
+    <!-- ─── Estimated Time ──────────────────────────────────────────── -->
+    <div class="rounded-xl border border-accent-200/40 dark:border-accent-500/10 bg-accent-50/30 dark:bg-accent-900/10 p-4">
+      <div class="flex items-start gap-3">
+        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-500/10">
+          <svg class="h-4 w-4 text-accent-600 dark:text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div class="flex-1">
+          <p class="text-xs font-semibold text-accent-700 dark:text-accent-300">Estimated Duration</p>
+          <p id="time-estimate" class="mt-0.5 text-sm font-bold tabular-nums text-accent-800 dark:text-accent-200">~4 – 6 min</p>
+          <p id="time-detail" class="mt-1 text-[11px] text-accent-600/70 dark:text-accent-400/60">Discovery ~30s · Crawling 30 sites x 5 pages · Extraction + scoring ~1s/site</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Pipeline Summary ────────────────────────────────────────── -->
+    <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-4">
       <p class="text-xs text-brand-500 dark:text-brand-400">
         <strong class="text-brand-700 dark:text-brand-300">Pipeline:</strong>
-        Discover up to <strong>{{ max_results }}</strong> companies &rarr; Crawl websites &rarr; Extract contacts &rarr; Detect tech stack &rarr; NLP enrichment &rarr; Validate emails &rarr; Score &amp; rank leads
+        Discover companies &rarr; Crawl websites &rarr; Extract contacts &rarr; Detect tech stack &rarr; NLP enrichment &rarr; Validate emails &rarr; Score &amp; rank leads
       </p>
     </div>
 
+    <!-- ─── Submit ──────────────────────────────────────────────────── -->
     <button
       type="submit"
       id="submit-btn"
-      class="w-full rounded-full bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-black focus:outline-none dark:bg-white dark:text-black dark:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center gap-2"
+      class="w-full rounded-xl bg-brand-900 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-black focus:outline-none dark:bg-white dark:text-black dark:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center gap-2"
     >
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
       Start Lead Collection
     </button>
   </form>
 
-  <p class="mt-6 text-center text-xs text-brand-400 dark:text-brand-500">
-    The pipeline will crawl company websites, extract contacts, detect technology stacks, validate emails and score every lead.
-  </p>
+  <!-- ─── API Access Section ────────────────────────────────────────── -->
+  <div class="mt-10 card p-8">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-brand-200/50 dark:border-white/[0.08] bg-violet-50 dark:bg-violet-500/10">
+        <svg class="h-5 w-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>
+      </div>
+      <div>
+        <h2 class="text-sm font-semibold dark:text-white">API Access</h2>
+        <p class="text-xs text-brand-400 dark:text-zinc-500">Programmatically start searches and retrieve leads</p>
+      </div>
+    </div>
+
+    <div class="space-y-5">
+      <!-- Start a search -->
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-2">1. Start a Search</h3>
+        <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
+          <pre class="text-xs text-emerald-400 font-mono whitespace-pre"><code>POST /api/search
+Content-Type: application/json
+
+{
+  "industry": "SaaS",
+  "location": "New York",
+  "max_companies": 30,
+  "max_pages": 5,
+  "min_score": 40
+}
+
+// Response: { "job_id": 1, "status": "pending" }</code></pre>
+        </div>
+      </div>
+
+      <!-- Check job status -->
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-2">2. Check Job Status</h3>
+        <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
+          <pre class="text-xs text-emerald-400 font-mono whitespace-pre"><code>GET /api/jobs/{job_id}
+
+// Response:
+{
+  "id": 1,
+  "status": "running",
+  "current_stage": "crawling",
+  "total_companies": 30,
+  "processed_companies": 12
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Get leads -->
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-2">3. Retrieve Leads</h3>
+        <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
+          <pre class="text-xs text-emerald-400 font-mono whitespace-pre"><code>GET /api/leads?page=1&amp;min_score=60&amp;industry=SaaS&amp;city=New+York
+
+// Response:
+{
+  "total": 25,
+  "page": 1,
+  "leads": [
+    {
+      "company": "Acme Corp",
+      "email": "info@acme.com",
+      "lead_score": 85,
+      "email_valid": true
+    }
+  ]
+}</code></pre>
+        </div>
+      </div>
+
+      <!-- Download export -->
+      <div>
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-2">4. Download Excel Export</h3>
+        <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
+          <pre class="text-xs text-emerald-400 font-mono whitespace-pre"><code>GET /export
+// Returns: leads.xlsx file download</code></pre>
+        </div>
+      </div>
+
+      <!-- Example with curl -->
+      <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-4">
+        <p class="text-xs font-semibold text-brand-600 dark:text-brand-300 mb-2">Quick Example (cURL)</p>
+        <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-3 overflow-x-auto">
+          <pre class="text-[11px] text-cyan-400 font-mono whitespace-pre"><code># Start a search
+curl -X POST http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"industry":"Fintech","location":"London"}'
+
+# Poll until complete
+curl http://localhost:8000/api/jobs/1
+
+# Fetch leads
+curl http://localhost:8000/api/leads?min_score=50</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script>
+function updateEstimate() {
+  const companies = parseInt(document.getElementById('max_companies').value) || 30;
+  const pages = parseInt(document.getElementById('max_pages').value) || 5;
+  const discoverySec = 30;
+  const crawlSec = companies * pages * 1.5;
+  const processingSec = companies * 1;
+  const totalSec = discoverySec + crawlSec + processingSec;
+  const lowMin = Math.max(1, Math.floor(totalSec * 0.7 / 60));
+  const highMin = Math.ceil(totalSec * 1.3 / 60);
+  const el = document.getElementById('time-estimate');
+  const detail = document.getElementById('time-detail');
+  if (highMin <= 1) {
+    el.textContent = '~1 min';
+  } else {
+    el.textContent = '~' + lowMin + ' \u2013 ' + highMin + ' min';
+  }
+  detail.textContent = 'Discovery ~30s \u00b7 Crawling ' + companies + ' sites \u00d7 ' + pages + ' pages \u00b7 Extraction + scoring ~1s/site';
+}
+function resetDefaults() {
+  document.getElementById('max_companies').value = {{ default_max_companies }};
+  document.getElementById('max_pages').value = {{ default_max_pages }};
+  document.getElementById('min_score').value = {{ default_min_score }};
+  updateEstimate();
+}
+updateEstimate();
+document.getElementById('search-form').addEventListener('submit', function() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Starting pipeline...';
+});
+</script>
+{% endblock %}
 <script>
 document.getElementById('search-form').addEventListener('submit', function() {
   const btn = document.getElementById('submit-btn');

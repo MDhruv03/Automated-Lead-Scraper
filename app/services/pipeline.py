@@ -129,7 +129,7 @@ def run_pipeline(job_id: int) -> None:
 
                 # ── Step 2: Crawl ─────────────────────────────────────────
                 _set_stage(db, job, "crawling")
-                pages = crawl_website(disc.website)
+                pages = crawl_website(disc.website, max_pages=job_max_pages)
                 website_active = len(pages) > 0
                 has_contact_page = any(
                     kw in p.url.lower() for p in pages for kw in ("contact", "about", "team")
@@ -281,8 +281,8 @@ def run_pipeline(job_id: int) -> None:
                     best_score = best_breakdown.total
 
                 # ── Quality Gate 4: Score threshold ───────────────────────
-                if best_score < MIN_LEAD_SCORE:
-                    logger.info("SKIP (score %d < %d) %s", best_score, MIN_LEAD_SCORE, disc.domain)
+                if best_score < job_min_score:
+                    logger.info("SKIP (score %d < %d) %s", best_score, job_min_score, disc.domain)
                     skipped_score += 1
                     job.processed_companies = idx
                     db.commit()

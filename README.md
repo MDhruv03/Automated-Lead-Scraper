@@ -1,112 +1,36 @@
-# LeadPulse — Automated Business Lead Intelligence Platform
+# LeadPulse
 
-A web-based system that automatically discovers companies based on industry and location, crawls company websites, extracts contact information such as emails and phone numbers, enriches the data using NLP, validates emails, scores leads, and exports structured lead datasets for sales outreach.
+LeadPulse is a simple lead discovery tool.  
+Enter an **industry and location**, and it finds companies, crawls their websites, extracts contact emails/phones, filters the results, and exports the leads to Excel.
 
----
-
-## Features
-
-| Capability | Detail |
-|---|---|
-| **Business Discovery** | Searches DuckDuckGo to find companies matching an industry + location query |
-| **Website Crawling** | Visits homepage, contact, about & team pages (up to 5 per site) |
-| **Contact Extraction** | Pulls emails, phone numbers, physical addresses and social-media profiles |
-| **Email Validation** | Syntax checking + MX record lookup via DNS |
-| **NLP Enrichment** | Industry detection, description generation and keyword extraction (spaCy) |
-| **Lead Scoring** | 0–100 composite quality score based on data completeness |
-| **Deduplication** | Domain-level and fuzzy company-name matching |
-| **Excel Export** | One-click download of all leads as a formatted `.xlsx` file |
-| **Live Job Tracking** | Real-time progress polling on the job-status page |
-
-## Tech Stack
-
-- **Backend** — Python 3.11, FastAPI, SQLAlchemy, Jinja2, Pydantic
-- **Scraping** — Requests, BeautifulSoup4, lxml
-- **NLP** — spaCy (`en_core_web_sm`)
-- **Data** — pandas, openpyxl, tldextract, dnspython
-- **Frontend** — TailwindCSS (CDN), Jinja templates
-- **Database** — SQLite (zero-config, Render-compatible)
-- **Deployment** — Docker, Render free tier
-
-## Architecture
-
-```
-Browser  ──▶  FastAPI Web App
-                 ├── Jinja Pages (Dashboard, Search, Leads)
-                 ├── REST API (/api/search, /api/jobs, /api/leads)
-                 └── BackgroundTasks Pipeline
-                       ├── Business Discovery (DuckDuckGo)
-                       ├── Website Crawler
-                       ├── Contact Extraction
-                       ├── NLP Enrichment
-                       ├── Lead Scoring
-                       └── Deduplication
-                 ──▶  SQLite  ──▶  Excel Export
-```
-
-Everything runs inside a **single process** — no Redis, no Celery, no workers.
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (recommended)
-
-### Install
+## Run Locally
 
 ```bash
 uv sync
 uv pip install en-core-web-sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
-```
+uv run uvicorn app.main:app --reload
 
-### Run
+Open **http://localhost:8000** → Search page → enter industry & location → hit Start.
+
+### Worker Mode (optional)
+
+For production / Render, the worker runs as a separate process that polls for jobs:
 
 ```bash
-uv run uvicorn app.main:app --reload
+# Set WORKER_TOKEN and WORKER_SERVER_URL, then:
+uv run python worker.py
 ```
 
-Open [http://localhost:8000](http://localhost:8000).
+## What It Does
 
-### Environment Variables
+1. What it does
+2. Discover companies
+3. Crawl company websites
+4. Extract emails and phone numbers
+5. Validate and filter results
+6. Export leads to Excel
 
-| Variable | Default | Description |
-|---|---|---|
-| `DATABASE_URL` | `sqlite:///./leads.db` | Database connection string |
-| `MAX_COMPANIES_PER_JOB` | `30` | Max companies discovered per search |
-| `MAX_PAGES_PER_SITE` | `5` | Max pages crawled per website |
-| `REQUEST_TIMEOUT` | `10` | HTTP request timeout in seconds |
-| `CRAWL_DELAY` | `1.0` | Delay between requests in seconds |
-
-## Deploy to Render
-
-1. Push to GitHub
-2. Connect repo on [Render](https://render.com)
-3. The included `render.yaml` auto-configures a free Docker web service
-
-## Project Structure
 
 ```
-├── app/
-│   ├── main.py              # FastAPI entry point
-│   ├── config.py            # Environment config
-│   ├── database.py          # SQLAlchemy setup
-│   ├── models/              # ORM models (Company, Lead, Job)
-│   ├── routes/              # Web + API routes
-│   ├── services/            # Core pipeline services
-│   │   ├── pipeline.py      # Orchestrator (BackgroundTasks)
-│   │   ├── discovery_service.py
-│   │   ├── crawler_service.py
-│   │   ├── extraction_service.py
-│   │   ├── enrichment_service.py
-│   │   ├── scoring_service.py
-│   │   └── dedupe_service.py
-│   ├── utils/               # Email, phone & text helpers
-│   └── templates/           # Jinja2 + Tailwind HTML
-├── exports/                 # Excel export utility
-├── pyproject.toml
-├── uv.lock
-├── Dockerfile
-├── render.yaml
-└── README.md
+On a side note, I have implemented the crawler on my local system, so it is less likely to be blocked by search engines because it runs on a residential internet connection. Running it on a cloud server could increase the chances of it being blocked, since datacenter IPs are more easily identified and restricted by search engines.
 ```
