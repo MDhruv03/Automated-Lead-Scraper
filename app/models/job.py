@@ -1,0 +1,48 @@
+"""Job model – tracks background pipeline runs."""
+
+from datetime import datetime, timezone
+
+from sqlalchemy import Column, Integer, String, DateTime
+
+from app.database import Base
+
+# Pipeline stages in execution order
+PIPELINE_STAGES = [
+    "queued",
+    "discovering",
+    "crawling",
+    "extracting",
+    "enriching",
+    "scoring",
+    "completed",
+]
+
+
+class Job(Base):
+    __tablename__ = "jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    query = Column(String(300), nullable=False)
+    location = Column(String(300), nullable=False)
+    status = Column(String(20), default="pending", index=True)
+    total_companies = Column(Integer, default=0)
+    processed_companies = Column(Integer, default=0)
+    current_stage = Column(String(30), default="queued")  # pipeline stage name
+    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    @property
+    def stage_index(self) -> int:
+        try:
+            return PIPELINE_STAGES.index(self.current_stage or "queued")
+        except ValueError:
+            return 0
+
+    @property
+    def duration_seconds(self) -> int | None:
+        if self.completed_at and self.created_at:
+            return int((self.completed_at - self.created_at).total_seconds())
+        return None
+
+    def __repr__(self) -> str:
+        return f"<Job {self.id} – {self.status}>"

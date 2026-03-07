@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}LeadPulse{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: {
+              50:  '#fafafa',
+              100: '#f4f4f5',
+              200: '#e4e4e7',
+              300: '#d4d4d8',
+              400: '#a1a1aa',
+              500: '#71717a',
+              600: '#52525b',
+              700: '#3f3f46',
+              800: '#27272a',
+              900: '#18181b',
+              950: '#09090b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .fade-in { animation: fadeIn .4s ease-in; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .score-bar { transition: width .6s ease; }
+  </style>
+</head>
+<body class="h-full bg-brand-50 text-brand-900 antialiased">
+
+  <!-- ─── Navbar ────────────────────────────────────────────────────── -->
+  <nav class="sticky top-0 z-50 border-b border-brand-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight text-brand-900">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+        </svg>
+        LeadPulse
+      </a>
+      <div class="flex items-center gap-1">
+        <a href="/" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Dashboard</a>
+        <a href="/search" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Search</a>
+        <a href="/leads" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Leads</a>
+        <a href="/export" class="rounded-md border border-brand-300 px-3 py-1.5 text-sm font-medium text-brand-700 transition hover:bg-brand-900 hover:text-white hover:border-brand-900">Export</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── Content ───────────────────────────────────────────────────── -->
+  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 fade-in">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ─── Footer ────────────────────────────────────────────────────── -->
+  <footer class="border-t border-brand-200 bg-white">
+    <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
+      <p class="text-center text-xs text-brand-400">&copy; 2025 LeadPulse &middot; Automated Business Lead Intelligence</p>
+    </div>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

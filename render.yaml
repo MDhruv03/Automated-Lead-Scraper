@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: leadpulse
+    runtime: docker
+    plan: free
+    dockerCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./leads.db
+      - key: MAX_COMPANIES_PER_JOB
+        value: "30"

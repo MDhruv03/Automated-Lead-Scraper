@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Job #{{ job.id }} · LeadPulse{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-xl">
+  <div class="mb-8 text-center">
+    <h1 class="text-2xl font-semibold tracking-tight">Job #{{ job.id }}</h1>
+    <p class="mt-1 text-sm text-brand-500">{{ job.query }} · {{ job.location }}</p>
+  </div>
+
+  <div class="rounded-xl border border-brand-200 bg-white p-8 shadow-sm">
+    <!-- Status badge -->
+    <div class="mb-6 flex items-center justify-between">
+      <span class="text-xs font-semibold uppercase tracking-wider text-brand-400">Status</span>
+      <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold
+        {% if job.status == 'completed' %}bg-emerald-50 text-emerald-700
+        {% elif job.status == 'running' %}bg-amber-50 text-amber-700
+        {% elif job.status == 'failed' %}bg-red-50 text-red-700
+        {% else %}bg-brand-100 text-brand-600{% endif %}"
+        id="status-badge">
+        {{ job.status }}
+      </span>
+    </div>
+
+    <!-- Progress bar -->
+    {% set progress = ((job.processed_companies / job.total_companies * 100) | int) if job.total_companies else 0 %}
+    <div class="mb-2 flex justify-between text-xs text-brand-500">
+      <span>Progress</span>
+      <span id="progress-text">{{ job.processed_companies }} / {{ job.total_companies }} companies</span>
+    </div>
+    <div class="h-2 w-full overflow-hidden rounded-full bg-brand-100 mb-8">
+      <div id="progress-bar" class="score-bar h-full rounded-full bg-brand-900 transition-all duration-500" style="width:{{ progress }}%"></div>
+    </div>
+
+    <!-- Details -->
+    <dl class="space-y-3 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-brand-500">Query</dt>
+        <dd class="font-medium">{{ job.query }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-brand-500">Location</dt>
+        <dd class="font-medium">{{ job.location }}</dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-brand-500">Started</dt>
+        <dd class="font-medium">{{ job.created_at.strftime('%b %d, %Y %H:%M') if job.created_at else '—' }}</dd>
+      </div>
+    </dl>
+
+    <!-- Actions -->
+    <div class="mt-8 flex gap-3">
+      <a href="/leads" class="flex-1 rounded-lg bg-brand-900 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-800">View Leads</a>
+      <a href="/search" class="flex-1 rounded-lg border border-brand-300 py-2.5 text-center text-sm font-medium text-brand-700 transition hover:bg-brand-100">New Search</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if job.status in ('pending', 'running') %}
+<script>
+(function poll() {
+  setTimeout(async () => {
+    try {
+      const res = await fetch('/api/jobs/{{ job.id }}');
+      const data = await res.json();
+      const total = data.total_companies || 0;
+      const processed = data.processed_companies || 0;
+      const pct = total ? Math.round(processed / total * 100) : 0;
+
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = processed + ' / ' + total + ' companies';
+
+      const badge = document.getElementById('status-badge');
+      badge.textContent = data.status;
+      badge.className = badge.className.replace(/bg-\S+/g, '').replace(/text-\S+/g, '');
+      if (data.status === 'completed') {
+        badge.classList.add('bg-emerald-50', 'text-emerald-700', 'inline-flex', 'items-center', 'rounded-full', 'px-3', 'py-1', 'text-xs', 'font-semibold');
+      } else if (data.status === 'running') {
+        badge.classList.add('bg-amber-50', 'text-amber-700', 'inline-flex', 'items-center', 'rounded-full', 'px-3', 'py-1', 'text-xs', 'font-semibold');
+        poll();
+      } else if (data.status === 'failed') {
+        badge.classList.add('bg-red-50', 'text-red-700', 'inline-flex', 'items-center', 'rounded-full', 'px-3', 'py-1', 'text-xs', 'font-semibold');
+      } else {
+        badge.classList.add('bg-brand-100', 'text-brand-600', 'inline-flex', 'items-center', 'rounded-full', 'px-3', 'py-1', 'text-xs', 'font-semibold');
+        poll();
+      }
+    } catch {
+      poll();
+    }
+  }, 3000);
+})();
+</script>
+{% endif %}
+{% endblock %}

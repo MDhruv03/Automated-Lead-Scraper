@@ -1,0 +1,22 @@
+# Byte-compiled / optimised
+__pycache__/
+*.py[cod]
+*.pyo
+
+# SQLite database
+*.db
+
+# Environment
+.env
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Exports
+exports/*.xlsx
