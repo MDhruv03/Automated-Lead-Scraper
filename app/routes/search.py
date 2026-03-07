@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.job import Job
+from app.models.company import Company
+from app.models.lead import Lead
 from app.services.pipeline import run_pipeline
 from app.config import MAX_COMPANIES_PER_JOB
 
@@ -97,3 +99,26 @@ async def api_job_status(job_id: int, db: Session = Depends(get_db)):
         "processed_companies": job.processed_companies,
         "current_stage": job.current_stage,
     }
+
+
+# ── Delete single job + its companies & leads ────────────────────────────────
+@router.post("/jobs/{job_id}/delete")
+async def delete_job(job_id: int, db: Session = Depends(get_db)):
+    job = db.query(Job).get(job_id)
+    if job:
+        companies = db.query(Company).filter(Company.job_id == job_id).all()
+        for company in companies:
+            db.delete(company)  # cascade deletes leads
+        db.delete(job)
+        db.commit()
+    return RedirectResponse(url="/", status_code=303)
+
+
+# ── Delete all jobs + all companies & leads ──────────────────────────────────
+@router.post("/jobs/delete-all")
+async def delete_all_jobs(db: Session = Depends(get_db)):
+    db.query(Lead).delete()
+    db.query(Company).delete()
+    db.query(Job).delete()
+    db.commit()
+    return RedirectResponse(url="/", status_code=303)

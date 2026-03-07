@@ -122,9 +122,10 @@ def run_pipeline(job_id: int) -> None:
                 emp_est = ""
 
                 if pages:
-                    techs = detect_technologies(pages[0].html)
-                    header_techs = detect_from_headers({})
-                    techs = list(set(techs + header_techs))
+                    tech_signals = detect_technologies(pages[0].html)
+                    header_signals = detect_from_headers({})
+                    all_signals = {s.name: s for s in tech_signals + header_signals}
+                    techs = list(all_signals.values())
 
                     meta = extract_meta_info(pages[0].html)
                     meta_desc = meta.get("description", "")

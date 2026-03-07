@@ -55,7 +55,7 @@ _SIGNATURES: list[tuple[str, str, list[str]]] = [
 ]
 
 
-@dataclass
+@dataclass(frozen=True)
 class TechSignal:
     name: str
     category: str
