@@ -25,6 +25,7 @@ class Lead(Base):
     # ── Enhanced fields ───────────────────────────────────────────────────
     role = Column(String(50))            # Executive, Sales, Support, etc.
     score_breakdown = Column(Text)       # JSON dict of scoring factors
+    extra_emails = Column(Text)          # JSON list of additional emails for this company
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 

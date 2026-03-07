@@ -1,4 +1,9 @@
-"""Pipeline orchestrator – the background task that drives end-to-end lead discovery."""
+"""Pipeline orchestrator – the background task that drives end-to-end lead discovery.
+
+Stages: discovery → domain normalization → page classification → location
+validation → company validation → contact extraction → deduplication →
+lead scoring → export.  One lead row per company.
+"""
 
 from __future__ import annotations
 
@@ -21,7 +26,7 @@ from app.services.enrichment_service import enrich
 from app.services.scoring_service import score_lead, validate_email
 from app.services.dedupe_service import is_duplicate_company, is_duplicate_lead, deduplicate_emails
 from app.services.techdetect_service import detect_technologies, detect_from_headers, extract_meta_info, estimate_company_size
-from app.services.validation_service import validate_business
+from app.services.validation_service import validate_business, get_location_terms, check_location_relevance
 from app.utils.email_utils import classify_email_role
 from app.utils.text_utils import clean_html_text
 
@@ -54,12 +59,15 @@ def _set_stage(db: Session, job: Job, stage: str) -> None:
 def run_pipeline(job_id: int) -> None:
     """Execute the full lead-discovery pipeline for a given job.
 
-    Quality gates:
-      - Business validation: homepage must have ≥3 business signals
-      - Industry relevance: crawled text must contain ≥1 industry keyword
-      - Contact requirement: at least one email OR phone needed
-      - Score threshold: leads scoring < MIN_LEAD_SCORE are discarded
-      - Strict dedup: by (normalized domain, email)
+    Quality gates (all must pass):
+      1. Domain not blocklisted
+      2. Pages crawled & no article URLs
+      3. Business validation: ≥3 business signals
+      4. Location relevance: site text must mention the target location
+      5. Industry relevance: site text must contain ≥1 industry keyword
+      6. Contact requirement: at least one email OR phone
+      7. Score threshold: lead score ≥ MIN_LEAD_SCORE
+      8. Strict dedup by domain — one lead row per company
     """
     db: Session = SessionLocal()
     try:
@@ -78,24 +86,36 @@ def run_pipeline(job_id: int) -> None:
         _set_stage(db, job, "crawling")
 
         industry_kws = _get_industry_keywords(job.query)
-        logger.info("Industry keywords for '%s': %s", job.query, industry_kws[:5] if industry_kws else "none")
+        location_terms = get_location_terms(job.location)
+        logger.info(
+            "Industry kws: %s | Location terms: %s",
+            industry_kws[:5] if industry_kws else "none",
+            location_terms[:6] if location_terms else "none",
+        )
 
         saved_count = 0
         skipped_validation = 0
         skipped_contacts = 0
         skipped_score = 0
         skipped_relevance = 0
-        seen_domain_email: set[tuple[str, str]] = set()
+        skipped_location = 0
+        seen_domains: set[str] = set()
 
         for idx, disc in enumerate(discovered, 1):
             try:
-                # ── Dedup check ───────────────────────────────────────────
+                # ── Domain-level dedup (in-job) ───────────────────────────
+                if disc.domain in seen_domains:
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+                seen_domains.add(disc.domain)
+
+                # ── DB dedup check ────────────────────────────────────────
                 if is_duplicate_company(db, disc.domain, disc.name):
                     job.processed_companies = idx
                     db.commit()
                     continue
 
-                # Check domain quality
                 if _is_bad_domain(disc.domain):
                     logger.info("SKIP (bad domain) %s", disc.domain)
                     job.processed_companies = idx
@@ -113,29 +133,40 @@ def run_pipeline(job_id: int) -> None:
                 # Reject pages that look like articles/blog posts
                 pages = [p for p in pages if not _is_article_url(p.url)]
 
-                # ── Quality Gate 1: Business validation ───────────────────
-                if pages:
-                    all_html = " ".join(p.html for p in pages)
-                    is_biz, confidence, signals = validate_business(all_html)
-                    if not is_biz:
-                        logger.info(
-                            "SKIP (not a business) %s – confidence=%.2f, signals=%s",
-                            disc.domain, confidence, signals,
-                        )
-                        skipped_validation += 1
-                        job.processed_companies = idx
-                        db.commit()
-                        continue
-                else:
+                if not pages:
                     logger.info("SKIP (no pages crawled) %s", disc.domain)
                     skipped_validation += 1
                     job.processed_companies = idx
                     db.commit()
                     continue
 
-                # ── Quality Gate 1b: Industry relevance ───────────────────
+                all_html = " ".join(p.html for p in pages)
                 full_text = " ".join(clean_html_text(p.html) for p in pages)
-                if not _has_industry_relevance(full_text, industry_kws):
+
+                # ── Quality Gate 1: Business validation ───────────────────
+                is_biz, confidence, signals = validate_business(all_html)
+                if not is_biz:
+                    logger.info(
+                        "SKIP (not a business) %s – confidence=%.2f, signals=%s",
+                        disc.domain, confidence, signals,
+                    )
+                    skipped_validation += 1
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+
+                # ── Quality Gate 2: Location relevance ────────────────────
+                location_match = check_location_relevance(full_text, location_terms)
+                if not location_match:
+                    logger.info("SKIP (no location relevance) %s", disc.domain)
+                    skipped_location += 1
+                    job.processed_companies = idx
+                    db.commit()
+                    continue
+
+                # ── Quality Gate 3: Industry relevance ────────────────────
+                industry_kw_present = _has_industry_relevance(full_text, industry_kws)
+                if not industry_kw_present and industry_kws:
                     logger.info("SKIP (no industry relevance) %s", disc.domain)
                     skipped_relevance += 1
                     job.processed_companies = idx
@@ -150,7 +181,6 @@ def run_pipeline(job_id: int) -> None:
                 merged = merge_contacts(page_contacts)
                 merged.emails = deduplicate_emails(merged.emails)
 
-                # ── Quality Gate 2: Contact requirement ───────────────────
                 has_email = bool(merged.emails)
                 has_phone = bool(merged.phones)
                 if not has_email and not has_phone:
@@ -178,89 +208,73 @@ def run_pipeline(job_id: int) -> None:
 
                 emp_est = estimate_company_size(full_text[:5000])
 
-                # Check if domain is high-risk (e.g. suspicious patterns)
                 is_high_risk = disc.domain.count("-") >= 3
-
-                # Check industry keyword presence for scoring
-                industry_kw_present = _has_industry_relevance(full_text, industry_kws) if industry_kws else False
+                is_legit_domain = not is_high_risk and len(disc.domain) < 50
 
                 # ── Step 4: Enrich ────────────────────────────────────────
                 _set_stage(db, job, "enriching")
                 enrichment = enrich(full_text[:8000])
                 keywords = enrichment.keywords if hasattr(enrichment, 'keywords') and enrichment.keywords else []
 
-                # ── Step 5: Score leads & apply threshold ─────────────────
+                # ── Step 5: Score – ONE lead per company ──────────────────
                 _set_stage(db, job, "scoring")
 
-                leads_to_save: list[Lead] = []
+                # Pick the best email
+                best_email = None
+                best_email_valid = False
+                best_role = None
+                best_score = -1
+                extra_emails: list[str] = []
 
                 if merged.emails:
-                    for email in merged.emails[:5]:
-                        # Strict dedup: (domain, email)
-                        dedup_key = (disc.domain, email.lower())
-                        if dedup_key in seen_domain_email:
-                            continue
-                        seen_domain_email.add(dedup_key)
-
+                    for email in merged.emails[:10]:
                         is_valid = validate_email(email)
                         role = classify_email_role(email)
-                        breakdown = score_lead(
+                        bd = score_lead(
                             email=email,
                             email_valid=is_valid,
                             phone=merged.phones[0] if merged.phones else None,
                             has_contact_page=has_contact_page,
                             has_industry_keyword=industry_kw_present,
+                            has_location_match=location_match,
                             website_active=website_active,
                             is_high_risk_domain=is_high_risk,
+                            is_legitimate_domain=is_legit_domain,
                         )
-                        if breakdown.total < MIN_LEAD_SCORE:
-                            logger.debug(
-                                "SKIP lead %s (score %d < %d)", email, breakdown.total, MIN_LEAD_SCORE,
-                            )
-                            continue
-                        leads_to_save.append(
-                            Lead(
-                                email=email,
-                                phone=merged.phones[0] if merged.phones else None,
-                                address=merged.addresses[0] if merged.addresses else None,
-                                linkedin=merged.linkedin,
-                                lead_score=breakdown.total,
-                                email_valid=is_valid,
-                                source_url=merged.source_url,
-                                role=role,
-                                score_breakdown=breakdown.to_json(),
-                            )
-                        )
-                else:
+                        if bd.total > best_score:
+                            # Demote previous best to extras
+                            if best_email:
+                                extra_emails.append(best_email)
+                            best_email = email
+                            best_email_valid = is_valid
+                            best_role = role
+                            best_score = bd.total
+                            best_breakdown = bd
+                        else:
+                            extra_emails.append(email)
+
+                if best_email is None and merged.phones:
                     # Phone-only lead
-                    breakdown = score_lead(
-                        phone=merged.phones[0] if merged.phones else None,
+                    best_breakdown = score_lead(
+                        phone=merged.phones[0],
                         has_contact_page=has_contact_page,
                         has_industry_keyword=industry_kw_present,
+                        has_location_match=location_match,
                         website_active=website_active,
                         is_high_risk_domain=is_high_risk,
+                        is_legitimate_domain=is_legit_domain,
                     )
-                    if breakdown.total >= MIN_LEAD_SCORE:
-                        leads_to_save.append(
-                            Lead(
-                                phone=merged.phones[0] if merged.phones else None,
-                                address=merged.addresses[0] if merged.addresses else None,
-                                linkedin=merged.linkedin,
-                                lead_score=breakdown.total,
-                                source_url=merged.source_url,
-                                score_breakdown=breakdown.to_json(),
-                            )
-                        )
+                    best_score = best_breakdown.total
 
-                # ── Quality Gate 3: Score threshold ───────────────────────
-                if not leads_to_save:
-                    logger.info("SKIP (all leads below score %d) %s", MIN_LEAD_SCORE, disc.domain)
+                # ── Quality Gate 4: Score threshold ───────────────────────
+                if best_score < MIN_LEAD_SCORE:
+                    logger.info("SKIP (score %d < %d) %s", best_score, MIN_LEAD_SCORE, disc.domain)
                     skipped_score += 1
                     job.processed_companies = idx
                     db.commit()
                     continue
 
-                # ── Save company + leads ──────────────────────────────────
+                # ── Save company + single lead ────────────────────────────
                 company = Company(
                     name=disc.name,
                     website=disc.website,
@@ -279,17 +293,25 @@ def run_pipeline(job_id: int) -> None:
                 db.add(company)
                 db.flush()
 
-                for lead in leads_to_save:
-                    if lead.email and is_duplicate_lead(db, company.id, lead.email):
-                        continue
-                    lead.company_id = company.id
-                    db.add(lead)
+                lead = Lead(
+                    company_id=company.id,
+                    email=best_email,
+                    phone=merged.phones[0] if merged.phones else None,
+                    address=merged.addresses[0] if merged.addresses else None,
+                    linkedin=merged.linkedin,
+                    lead_score=best_score,
+                    email_valid=best_email_valid,
+                    source_url=merged.source_url,
+                    role=best_role,
+                    score_breakdown=best_breakdown.to_json(),
+                    extra_emails=json.dumps(extra_emails) if extra_emails else None,
+                )
+                db.add(lead)
 
                 saved_count += 1
                 job.processed_companies = idx
                 db.commit()
-                logger.info("SAVED lead(s) for %s (score %d+)", disc.domain,
-                            leads_to_save[0].lead_score if leads_to_save else 0)
+                logger.info("SAVED %s (score %d)", disc.domain, best_score)
 
             except Exception:
                 logger.exception("Error processing company %s", disc.name)
@@ -303,8 +325,8 @@ def run_pipeline(job_id: int) -> None:
         job.duration_seconds = round(_time.monotonic() - _start_time, 1)
         db.commit()
         logger.info(
-            "Job %s completed – %d saved, skipped: validation=%d, relevance=%d, contacts=%d, score=%d",
-            job_id, saved_count, skipped_validation, skipped_relevance, skipped_contacts, skipped_score,
+            "Job %s completed – %d saved, skipped: validation=%d, location=%d, relevance=%d, contacts=%d, score=%d",
+            job_id, saved_count, skipped_validation, skipped_location, skipped_relevance, skipped_contacts, skipped_score,
         )
 
     except Exception:

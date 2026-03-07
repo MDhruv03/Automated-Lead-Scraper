@@ -48,7 +48,7 @@ from app.services.enrichment_service import enrich
 from app.services.scoring_service import score_lead, validate_email
 from app.services.dedupe_service import deduplicate_emails
 from app.services.techdetect_service import detect_technologies, detect_from_headers, extract_meta_info, estimate_company_size
-from app.services.validation_service import validate_business
+from app.services.validation_service import validate_business, get_location_terms, check_location_relevance
 from app.utils.email_utils import classify_email_role
 from app.utils.text_utils import clean_html_text
 
@@ -201,10 +201,10 @@ def run_local_pipeline(
         client.progress(job_id, "crawling", total, 0)
 
         industry_kws = _get_industry_keywords(query)
+        location_terms = get_location_terms(location)
         results: list[dict] = []
         saved = 0
-
-        seen_domain_email: set[tuple[str, str]] = set()
+        seen_domains: set[str] = set()
 
         for idx, disc in enumerate(discovered, 1):
             if _shutdown.is_set():
@@ -212,6 +212,12 @@ def run_local_pipeline(
                 break
 
             try:
+                # ── Domain-level dedup (in-job) ───────────────────────────
+                if disc.domain in seen_domains:
+                    client.progress(job_id, "crawling", total, idx)
+                    continue
+                seen_domains.add(disc.domain)
+
                 if _is_bad_domain(disc.domain):
                     client.progress(job_id, "crawling", total, idx)
                     continue
@@ -225,18 +231,25 @@ def run_local_pipeline(
                 )
                 pages = [p for p in pages if not _is_article_url(p.url)]
 
-                # ── Business validation ───────────────────────────────────
-                if pages:
-                    all_html = " ".join(p.html for p in pages)
-                    is_biz, confidence, signals = validate_business(all_html)
-                    if not is_biz:
-                        continue
-                else:
+                if not pages:
                     continue
 
-                # ── Industry relevance ────────────────────────────────────
+                all_html = " ".join(p.html for p in pages)
                 full_text = " ".join(clean_html_text(p.html) for p in pages)
-                if not _has_industry_relevance(full_text, industry_kws):
+
+                # ── Quality Gate 1: Business validation ───────────────────
+                is_biz, confidence, signals = validate_business(all_html)
+                if not is_biz:
+                    continue
+
+                # ── Quality Gate 2: Location relevance ────────────────────
+                location_match = check_location_relevance(full_text, location_terms)
+                if not location_match:
+                    continue
+
+                # ── Quality Gate 3: Industry relevance ────────────────────
+                industry_kw_present = _has_industry_relevance(full_text, industry_kws)
+                if not industry_kw_present and industry_kws:
                     continue
 
                 # ── Extract contacts ──────────────────────────────────────
@@ -266,9 +279,7 @@ def run_local_pipeline(
                 emp_est = estimate_company_size(full_text[:5000])
 
                 is_high_risk = disc.domain.count("-") >= 3
-                industry_kw_present = (
-                    _has_industry_relevance(full_text, industry_kws) if industry_kws else False
-                )
+                is_legit_domain = not is_high_risk and len(disc.domain) < 50
 
                 # ── Enrich ────────────────────────────────────────────────
                 client.progress(job_id, "enriching", total, idx)
@@ -279,61 +290,70 @@ def run_local_pipeline(
                     else []
                 )
 
-                # ── Score & collect leads ─────────────────────────────────
+                # ── Score – ONE lead per company ──────────────────────────
                 client.progress(job_id, "scoring", total, idx)
-                leads: list[dict] = []
+
+                best_email = None
+                best_email_valid = False
+                best_role = None
+                best_score = -1
+                best_breakdown = None
+                extra_emails: list[str] = []
 
                 if merged.emails:
-                    for email in merged.emails[:5]:
-                        dedup_key = (disc.domain, email.lower())
-                        if dedup_key in seen_domain_email:
-                            continue
-                        seen_domain_email.add(dedup_key)
-
+                    for email in merged.emails[:10]:
                         is_valid = validate_email(email)
                         role = classify_email_role(email)
-                        breakdown = score_lead(
+                        bd = score_lead(
                             email=email,
                             email_valid=is_valid,
                             phone=merged.phones[0] if merged.phones else None,
                             has_contact_page=has_contact_page,
                             has_industry_keyword=industry_kw_present,
+                            has_location_match=location_match,
                             website_active=website_active,
                             is_high_risk_domain=is_high_risk,
+                            is_legitimate_domain=is_legit_domain,
                         )
-                        if breakdown.total < MIN_LEAD_SCORE:
-                            continue
-                        leads.append({
-                            "email": email,
-                            "phone": merged.phones[0] if merged.phones else None,
-                            "address": merged.addresses[0] if merged.addresses else None,
-                            "linkedin": merged.linkedin,
-                            "lead_score": breakdown.total,
-                            "email_valid": is_valid,
-                            "source_url": merged.source_url,
-                            "role": role,
-                            "score_breakdown": breakdown.to_json(),
-                        })
-                else:
-                    breakdown = score_lead(
-                        phone=merged.phones[0] if merged.phones else None,
+                        if bd.total > best_score:
+                            if best_email:
+                                extra_emails.append(best_email)
+                            best_email = email
+                            best_email_valid = is_valid
+                            best_role = role
+                            best_score = bd.total
+                            best_breakdown = bd
+                        else:
+                            extra_emails.append(email)
+
+                if best_email is None and merged.phones:
+                    best_breakdown = score_lead(
+                        phone=merged.phones[0],
                         has_contact_page=has_contact_page,
                         has_industry_keyword=industry_kw_present,
+                        has_location_match=location_match,
                         website_active=website_active,
                         is_high_risk_domain=is_high_risk,
+                        is_legitimate_domain=is_legit_domain,
                     )
-                    if breakdown.total >= MIN_LEAD_SCORE:
-                        leads.append({
-                            "phone": merged.phones[0] if merged.phones else None,
-                            "address": merged.addresses[0] if merged.addresses else None,
-                            "linkedin": merged.linkedin,
-                            "lead_score": breakdown.total,
-                            "source_url": merged.source_url,
-                            "score_breakdown": breakdown.to_json(),
-                        })
+                    best_score = best_breakdown.total
 
-                if not leads:
+                if best_score < MIN_LEAD_SCORE:
                     continue
+
+                # ── Collect single lead for this company ──────────────────
+                lead_dict = {
+                    "email": best_email,
+                    "phone": merged.phones[0] if merged.phones else None,
+                    "address": merged.addresses[0] if merged.addresses else None,
+                    "linkedin": merged.linkedin,
+                    "lead_score": best_score,
+                    "email_valid": best_email_valid,
+                    "source_url": merged.source_url,
+                    "role": best_role,
+                    "score_breakdown": best_breakdown.to_json(),
+                    "extra_emails": json.dumps(extra_emails) if extra_emails else None,
+                }
 
                 results.append({
                     "name": disc.name,
@@ -348,11 +368,10 @@ def run_local_pipeline(
                     "logo_url": logo or None,
                     "employee_estimate": emp_est or None,
                     "keywords": keywords or None,
-                    "leads": leads,
+                    "leads": [lead_dict],
                 })
                 saved += 1
-                logger.info("SAVED %s (%d lead(s), score %d+)",
-                            disc.domain, len(leads), leads[0]["lead_score"])
+                logger.info("SAVED %s (score %d)", disc.domain, best_score)
 
             except Exception:
                 logger.exception("Error processing %s", disc.name)

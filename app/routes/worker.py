@@ -123,6 +123,7 @@ class LeadPayload(BaseModel):
     source_url: str | None = None
     role: str | None = None
     score_breakdown: str | None = None
+    extra_emails: str | None = None
 
 
 class CompanyPayload(BaseModel):
@@ -189,6 +190,7 @@ async def submit_results(
                 source_url=lp.source_url,
                 role=lp.role,
                 score_breakdown=lp.score_breakdown,
+                extra_emails=lp.extra_emails,
             )
             db.add(lead)
         saved += 1

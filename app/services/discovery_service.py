@@ -133,6 +133,12 @@ _BAD_TITLE_WORDS = [
     "symptoms of", "causes of", "treatment for",
     "quick & easy", "quick and easy", "easy steps",
     "meaning", "definition", "dictionary",
+    # Research / listicle / report
+    "rankings", "report", "analysis", "market research", "market size",
+    "trends", "statistics", "forecast", "survey", "outlook",
+    "industry report", "industry analysis", "market overview",
+    "growth rate", "cagr", "market share",
+    "price list", "pricing comparison", "salary guide",
 ]
 
 # Regex patterns for listicle/article titles
@@ -140,6 +146,10 @@ _BAD_TITLE_PATTERNS = [
     re.compile(r"^\d+\s+(best|top|leading|largest|biggest|fastest|innovative|emerging)", re.I),
     re.compile(r"^(list|ranking|directory|index)\s+of\b", re.I),
     re.compile(r":\s*(health benefits|nutrition|side effects|symptoms|meaning)", re.I),
+    re.compile(r"\b(20[12]\d)\b", re.I),  # years 2010-2029 in titles → usually articles
+    re.compile(r"\b(best|top|leading)\s+\d+\b", re.I),  # "best 15", "top 25" etc.
+    re.compile(r"\breport\s*[:\-|]", re.I),  # "Report: ...", "Report - ..."
+    re.compile(r"\bmarket\s+(research|report|analysis|overview|size|forecast)", re.I),
 ]
 
 
@@ -163,11 +173,12 @@ def _extract_domain(url: str) -> str:
 
 
 def _clean_url(url: str) -> str:
-    """Ensure scheme is present and strip tracking params."""
+    """Normalize to root registered domain, stripping subdomains and paths."""
     if not url.startswith("http"):
         url = "https://" + url
-    parsed = urlparse(url)
-    return f"{parsed.scheme}://{parsed.netloc}"
+    ext = tldextract.extract(url)
+    root = f"{ext.domain}.{ext.suffix}".lower()
+    return f"https://{root}"
 
 
 _SUSPICIOUS_TOKENS = {"free", "download", "crack", "keygen", "torrent", "proxy", "vpn"}
@@ -208,7 +219,9 @@ def _is_bad_title(title: str) -> bool:
 
 # Article heuristic for URLs
 _ARTICLE_URL_RE = re.compile(
-    r"/(blog|article|news|post|story|guide|tutorial|how-to|tips|review|recipe|top-\d+|best-|\d{4}/\d{2}/)",
+    r"/(blog|article|news|post|story|guide|tutorial|how-to|tips|review|recipe"
+    r"|top-\d+|best-|\d{4}/\d{2}/|report|analysis|ranking|survey|forecast"
+    r"|comparison|vs-|versus|statistics|trends|market-)",
     re.I,
 )
 

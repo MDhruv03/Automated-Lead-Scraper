@@ -1,4 +1,4 @@
-"""Business validation service – determines if a crawled website is a real business."""
+"""Business & location validation service."""
 
 from __future__ import annotations
 
@@ -8,6 +8,77 @@ import re
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
+
+# ── Location aliases for commonly-searched cities ─────────────────────────────
+_CITY_ALIASES: dict[str, list[str]] = {
+    "bangalore": ["bangalore", "bengaluru", "karnataka"],
+    "mumbai": ["mumbai", "bombay", "maharashtra"],
+    "delhi": ["delhi", "new delhi", "gurgaon", "gurugram", "noida", "ncr"],
+    "chennai": ["chennai", "madras", "tamil nadu"],
+    "hyderabad": ["hyderabad", "telangana", "secunderabad"],
+    "pune": ["pune", "maharashtra"],
+    "kolkata": ["kolkata", "calcutta", "west bengal"],
+    "ahmedabad": ["ahmedabad", "gujarat"],
+    "jaipur": ["jaipur", "rajasthan"],
+    "kochi": ["kochi", "cochin", "kerala"],
+    "new york": ["new york", "nyc", "manhattan", "brooklyn", "queens"],
+    "san francisco": ["san francisco", "bay area"],
+    "los angeles": ["los angeles", "la"],
+    "chicago": ["chicago", "illinois"],
+    "london": ["london", "uk", "united kingdom"],
+    "singapore": ["singapore"],
+    "dubai": ["dubai", "uae", "emirates"],
+    "toronto": ["toronto", "ontario"],
+    "sydney": ["sydney", "nsw"],
+    "berlin": ["berlin", "germany"],
+    "tokyo": ["tokyo", "japan"],
+}
+
+_COUNTRY_KEYWORDS: dict[str, list[str]] = {
+    "india": ["india", ".in"],
+    "usa": ["united states", "usa"],
+    "uk": ["united kingdom", "uk"],
+    "canada": ["canada"],
+    "australia": ["australia"],
+    "germany": ["germany"],
+    "singapore": ["singapore"],
+    "uae": ["united arab emirates", "uae"],
+}
+
+
+def get_location_terms(location: str) -> list[str]:
+    """Generate all text-match terms for a given job location."""
+    terms: set[str] = set()
+    loc_lower = location.lower().strip()
+
+    # Full location string
+    terms.add(loc_lower)
+
+    # Individual words (min 3 chars)
+    for word in re.split(r"[,\s]+", loc_lower):
+        if len(word) >= 3:
+            terms.add(word)
+
+    # City alias expansion
+    for key, aliases in _CITY_ALIASES.items():
+        if key in loc_lower or loc_lower in key:
+            terms.update(aliases)
+
+    # Country keyword expansion
+    for key, aliases in _COUNTRY_KEYWORDS.items():
+        if key in loc_lower:
+            terms.update(aliases)
+
+    return [t for t in terms if len(t) >= 2]
+
+
+def check_location_relevance(text: str, location_terms: list[str]) -> bool:
+    """Return True if any location term appears in the text."""
+    if not location_terms:
+        return True
+    text_lower = text.lower()
+    return any(term in text_lower for term in location_terms)
+
 
 # Words/phrases that strongly indicate a real business website
 _BUSINESS_SIGNALS = [

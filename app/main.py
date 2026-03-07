@@ -37,6 +37,12 @@ with engine.connect() as conn:
         conn.commit()
         logger.info("Migrated: added duration_seconds column to jobs table")
 
+    lead_cols = {c["name"] for c in inspect(engine).get_columns("leads")}
+    if "extra_emails" not in lead_cols:
+        conn.execute(text("ALTER TABLE leads ADD COLUMN extra_emails TEXT"))
+        conn.commit()
+        logger.info("Migrated: added extra_emails column to leads table")
+
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title=APP_TITLE,
