@@ -387,12 +387,9 @@ def main():
     parser = argparse.ArgumentParser(description="LeadPulse local crawler worker")
     parser.add_argument(
         "--server",
-        default=os.getenv(
-            "LEADPULSE_SERVER",
-            "https://leadscraper-btn9.onrender.com,https://lead-scraper.dhruvm.dev",
-        ),
-        help="Comma-separated base URL(s) of the deployed LeadPulse server "
-             "(default: Render + custom domain)",
+        default=os.getenv("LEADPULSE_SERVER", "http://localhost:8000"),
+        help="Comma-separated base URL(s) of the LeadPulse server "
+             "(default: http://localhost:8000; set LEADPULSE_SERVER env var for production)",
     )
     parser.add_argument(
         "--secret",
