@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev && \
-    uv run python -m spacy download en_core_web_sm
+    uv pip install --no-deps en_core_web_sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 
 COPY . .
 
