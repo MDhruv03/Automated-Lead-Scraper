@@ -15,7 +15,7 @@ from app.database import engine, Base
 from app.models import company, lead, job  # noqa: F401
 
 # ── Routes ────────────────────────────────────────────────────────────────────
-from app.routes import dashboard, search, leads, export
+from app.routes import dashboard, search, leads, export, analytics
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -45,6 +45,7 @@ app.include_router(dashboard.router)
 app.include_router(search.router)
 app.include_router(leads.router)
 app.include_router(export.router)
+app.include_router(analytics.router)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

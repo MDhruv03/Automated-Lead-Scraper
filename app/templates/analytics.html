@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Analytics · LeadPulse{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Analytics</h1>
+  <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Deep insights into your lead intelligence data.</p>
+</div>
+
+<!-- Summary cards -->
+<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-10">
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Total Leads</p>
+    <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
+  </div>
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Companies</p>
+    <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
+  </div>
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Avg Score</p>
+    <p class="mt-2 text-3xl font-bold tabular-nums text-accent-600">{{ avg_score }}</p>
+  </div>
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Max Score</p>
+    <p class="mt-2 text-3xl font-bold tabular-nums text-emerald-600">{{ max_score }}</p>
+  </div>
+</div>
+
+<!-- Charts grid -->
+<div class="grid gap-6 lg:grid-cols-2 mb-6">
+  <!-- Score Distribution -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Score Distribution</h2>
+    <canvas id="scoreChart" height="220"></canvas>
+  </div>
+
+  <!-- Industry Breakdown -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Industry Breakdown</h2>
+    <canvas id="industryChart" height="220"></canvas>
+  </div>
+
+  <!-- Email Validity -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Email Validity</h2>
+    <div class="flex items-center justify-center">
+      <canvas id="emailChart" height="220" width="220"></canvas>
+    </div>
+  </div>
+
+  <!-- Contact Role Distribution -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Contact Roles</h2>
+    <canvas id="roleChart" height="220"></canvas>
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Technology Stack</h2>
+    <canvas id="techChart" height="220"></canvas>
+  </div>
+
+  <!-- Discovery Timeline -->
+  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Discovery Timeline</h2>
+    <canvas id="timelineChart" height="220"></canvas>
+  </div>
+</div>
+
+{% if total_leads == 0 %}
+<div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-10 text-center shadow-sm">
+  <p class="text-sm text-brand-400 italic">No data yet — <a href="/search" class="text-accent-500 underline">start a search</a> to populate analytics.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+const isDark = document.documentElement.classList.contains('dark');
+const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+const textColor = isDark ? '#a1a1aa' : '#71717a';
+Chart.defaults.color = textColor;
+Chart.defaults.borderColor = gridColor;
+
+const COLORS = ['#6366f1','#06b6d4','#f59e0b','#ef4444','#10b981','#8b5cf6','#ec4899','#f97316','#14b8a6','#64748b','#a855f7','#84cc16'];
+
+// Score Distribution
+new Chart(document.getElementById('scoreChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ score_labels | safe }},
+    datasets: [{
+      label: 'Leads',
+      data: {{ score_data | safe }},
+      backgroundColor: '#6366f1',
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+// Industry Breakdown
+new Chart(document.getElementById('industryChart'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ industry_labels | safe }},
+    datasets: [{
+      data: {{ industry_data | safe }},
+      backgroundColor: COLORS,
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } } }
+  }
+});
+
+// Email Validity
+new Chart(document.getElementById('emailChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Valid', 'Invalid'],
+    datasets: [{
+      data: [{{ email_valid }}, {{ email_invalid }}],
+      backgroundColor: ['#10b981', '#ef4444'],
+      borderWidth: 0,
+    }]
+  },
+  options: {
+    responsive: true,
+    cutout: '65%',
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } } }
+  }
+});
+
+// Contact Roles
+new Chart(document.getElementById('roleChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ role_labels | safe }},
+    datasets: [{
+      label: 'Count',
+      data: {{ role_data | safe }},
+      backgroundColor: COLORS.slice(0, {{ role_labels | safe }}.length),
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+// Tech Stack
+new Chart(document.getElementById('techChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ tech_labels | safe }},
+    datasets: [{
+      label: 'Companies',
+      data: {{ tech_data | safe }},
+      backgroundColor: '#06b6d4',
+      borderRadius: 6,
+      borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+// Discovery Timeline
+new Chart(document.getElementById('timelineChart'), {
+  type: 'line',
+  data: {
+    labels: {{ timeline_labels | safe }},
+    datasets: [{
+      label: 'Companies Discovered',
+      data: {{ timeline_data | safe }},
+      borderColor: '#6366f1',
+      backgroundColor: 'rgba(99,102,241,0.1)',
+      fill: true,
+      tension: 0.3,
+      pointBackgroundColor: '#6366f1',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+</script>
+{% endblock %}

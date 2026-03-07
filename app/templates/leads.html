@@ -4,20 +4,26 @@
 {% block content %}
 <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
   <div>
-    <h1 class="text-2xl font-semibold tracking-tight">Leads</h1>
-    <p class="mt-1 text-sm text-brand-500">{{ total }} leads found.</p>
+    <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Leads</h1>
+    <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">{{ total }} leads found.</p>
   </div>
-  <a href="/export" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-900 hover:text-white hover:border-brand-900">
-    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-    Export Excel
-  </a>
+  <div class="flex items-center gap-2">
+    <a href="/analytics" class="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-700 px-4 py-2 text-sm font-medium text-brand-700 dark:text-brand-200 transition hover:bg-brand-100 dark:hover:bg-brand-800">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+      Analytics
+    </a>
+    <a href="/export" class="inline-flex items-center gap-1.5 rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-500">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+      Export Excel
+    </a>
+  </div>
 </div>
 
 <!-- Filters -->
-<form method="GET" action="/leads" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-brand-200 bg-white p-4 shadow-sm">
+<form method="GET" action="/leads" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-4 shadow-sm">
   <div class="flex-1 min-w-[140px]">
     <label class="block text-xs font-semibold uppercase tracking-wider text-brand-400 mb-1">Industry</label>
-    <select name="industry" class="w-full rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm outline-none focus:border-brand-400">
+    <select name="industry" class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-3 py-2 text-sm dark:text-brand-200 outline-none focus:border-accent-500">
       <option value="">All</option>
       {% for ind in industries %}
       <option value="{{ ind }}" {% if ind == filter_industry %}selected{% endif %}>{{ ind }}</option>
@@ -26,7 +32,7 @@
   </div>
   <div class="flex-1 min-w-[140px]">
     <label class="block text-xs font-semibold uppercase tracking-wider text-brand-400 mb-1">City</label>
-    <select name="city" class="w-full rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm outline-none focus:border-brand-400">
+    <select name="city" class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-3 py-2 text-sm dark:text-brand-200 outline-none focus:border-accent-500">
       <option value="">All</option>
       {% for c in cities %}
       <option value="{{ c }}" {% if c == filter_city %}selected{% endif %}>{{ c }}</option>
@@ -35,61 +41,99 @@
   </div>
   <div class="w-28">
     <label class="block text-xs font-semibold uppercase tracking-wider text-brand-400 mb-1">Min Score</label>
-    <input name="min_score" type="number" min="0" max="100" value="{{ filter_min_score }}" placeholder="0" class="w-full rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm outline-none focus:border-brand-400"/>
+    <input name="min_score" type="number" min="0" max="100" value="{{ filter_min_score }}" placeholder="0" class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-3 py-2 text-sm dark:text-brand-200 outline-none focus:border-accent-500"/>
   </div>
-  <button type="submit" class="rounded-lg bg-brand-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800">Filter</button>
+  <button type="submit" class="rounded-lg bg-accent-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-accent-500">Filter</button>
 </form>
 
 <!-- Table -->
-<div class="overflow-x-auto rounded-xl border border-brand-200 bg-white shadow-sm">
+<div class="overflow-x-auto rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 shadow-sm">
   <table class="w-full text-sm">
     <thead>
-      <tr class="border-b border-brand-100 text-left text-xs uppercase tracking-wider text-brand-400">
+      <tr class="border-b border-brand-100 dark:border-brand-800 text-left text-xs uppercase tracking-wider text-brand-400">
         <th class="px-4 py-3">Company</th>
         <th class="px-4 py-3">Email</th>
+        <th class="px-4 py-3">Role</th>
         <th class="px-4 py-3">Phone</th>
-        <th class="px-4 py-3">Industry</th>
-        <th class="px-4 py-3">City</th>
+        <th class="px-4 py-3">Tech Stack</th>
         <th class="px-4 py-3 text-center">Valid</th>
         <th class="px-4 py-3 text-right">Score</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-brand-50">
+    <tbody class="divide-y divide-brand-50 dark:divide-brand-800">
       {% for lead in leads %}
-      <tr class="transition hover:bg-brand-50/60">
-        <td class="whitespace-nowrap px-4 py-3 font-medium">
-          {% if lead.company and lead.company.website %}
-          <a href="{{ lead.company.website }}" target="_blank" rel="noopener" class="underline decoration-brand-300 hover:text-brand-600">{{ lead.company.name }}</a>
-          {% else %}
-          {{ lead.company.name if lead.company else '—' }}
-          {% endif %}
+      <tr class="transition hover:bg-brand-50/60 dark:hover:bg-brand-800/40 group">
+        <td class="whitespace-nowrap px-4 py-3 font-medium dark:text-brand-200">
+          <div class="flex items-center gap-2">
+            {% if lead.company and lead.company.domain %}
+            <img src="https://www.google.com/s2/favicons?domain={{ lead.company.domain }}&sz=32" alt="" class="h-4 w-4 rounded" loading="lazy" onerror="this.style.display='none'"/>
+            {% endif %}
+            {% if lead.company and lead.company.website %}
+            <a href="{{ lead.company.website }}" target="_blank" rel="noopener" class="underline decoration-brand-300 dark:decoration-brand-700 hover:text-accent-500 transition">{{ lead.company.name }}</a>
+            {% else %}
+            {{ lead.company.name if lead.company else '—' }}
+            {% endif %}
+          </div>
         </td>
-        <td class="px-4 py-3 text-brand-600">{{ lead.email or '—' }}</td>
-        <td class="px-4 py-3 text-brand-600">{{ lead.phone or '—' }}</td>
-        <td class="px-4 py-3">{{ lead.company.industry if lead.company else '—' }}</td>
-        <td class="px-4 py-3">{{ lead.company.city if lead.company else '—' }}</td>
+        <td class="px-4 py-3 text-brand-600 dark:text-brand-400">{{ lead.email or '—' }}</td>
+        <td class="px-4 py-3">
+          {% if lead.role %}
+          <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium
+            {% if lead.role == 'Executive' %}bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400
+            {% elif lead.role == 'Sales' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+            {% elif lead.role == 'Technical' %}bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400
+            {% elif lead.role == 'Marketing' %}bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400
+            {% elif lead.role == 'HR' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
+            {% elif lead.role == 'Support' %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400
+            {% elif lead.role == 'Finance' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+            {% else %}bg-brand-100 dark:bg-brand-800 text-brand-600 dark:text-brand-400{% endif %}">
+            {{ lead.role }}
+          </span>
+          {% else %}<span class="text-brand-300 dark:text-brand-600">—</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-brand-600 dark:text-brand-400">{{ lead.phone or '—' }}</td>
+        <td class="px-4 py-3">
+          {% if lead.company and lead.company.tech_list %}
+          <div class="flex flex-wrap gap-1 max-w-[200px]">
+            {% for tech in lead.company.tech_list[:3] %}
+            <span class="inline-flex rounded bg-brand-100 dark:bg-brand-800 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 dark:text-brand-400">{{ tech }}</span>
+            {% endfor %}
+            {% if lead.company.tech_list | length > 3 %}
+            <span class="inline-flex rounded bg-brand-100 dark:bg-brand-800 px-1.5 py-0.5 text-[10px] font-medium text-brand-500" title="{{ lead.company.tech_list[3:] | join(', ') }}">+{{ lead.company.tech_list | length - 3 }}</span>
+            {% endif %}
+          </div>
+          {% else %}<span class="text-brand-300 dark:text-brand-600">—</span>{% endif %}
+        </td>
         <td class="px-4 py-3 text-center">
           {% if lead.email_valid %}
-          <span class="inline-block h-2 w-2 rounded-full bg-emerald-500" title="Valid"></span>
+          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> MX
+          </span>
           {% elif lead.email %}
-          <span class="inline-block h-2 w-2 rounded-full bg-red-400" title="Invalid"></span>
+          <span class="inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
+            <span class="h-1.5 w-1.5 rounded-full bg-red-400"></span> Fail
+          </span>
           {% else %}
-          <span class="text-brand-300">—</span>
+          <span class="text-brand-300 dark:text-brand-600">—</span>
           {% endif %}
         </td>
         <td class="px-4 py-3 text-right">
-          <div class="flex items-center justify-end gap-2">
-            <div class="h-1.5 w-14 overflow-hidden rounded-full bg-brand-100">
-              <div class="score-bar h-full rounded-full bg-brand-900" style="width:{{ lead.lead_score }}%"></div>
+          <div class="relative flex items-center justify-end gap-2">
+            <div class="h-1.5 w-14 overflow-hidden rounded-full bg-brand-100 dark:bg-brand-800">
+              <div class="score-bar h-full rounded-full
+                {% if lead.lead_score >= 70 %}bg-emerald-500
+                {% elif lead.lead_score >= 40 %}bg-amber-500
+                {% else %}bg-red-400{% endif %}"
+                style="width:{{ lead.lead_score }}%"></div>
             </div>
-            <span class="tabular-nums font-semibold">{{ lead.lead_score | int }}</span>
+            <span class="tabular-nums font-semibold cursor-help" title="{% if lead.score_factors %}{% for f in lead.score_factors %}{{ f.label }}: {{ f.earned }}/{{ f.max }}&#10;{% endfor %}{% endif %}">{{ lead.lead_score | int }}</span>
           </div>
         </td>
       </tr>
       {% endfor %}
       {% if not leads %}
       <tr>
-        <td colspan="7" class="px-4 py-10 text-center text-brand-400 italic">No leads found. <a href="/search" class="underline">Start a search</a> to discover leads.</td>
+        <td colspan="7" class="px-4 py-10 text-center text-brand-400 italic">No leads found. <a href="/search" class="underline text-accent-500">Start a search</a> to discover leads.</td>
       </tr>
       {% endif %}
     </tbody>
@@ -100,21 +144,21 @@
 {% if total_pages > 1 %}
 <nav class="mt-6 flex items-center justify-center gap-1">
   {% if page > 1 %}
-  <a href="?page={{ page - 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 px-3 py-1.5 text-sm text-brand-600 transition hover:bg-brand-100">&laquo; Prev</a>
+  <a href="?page={{ page - 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 dark:border-brand-700 px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800">&laquo; Prev</a>
   {% endif %}
 
   {% for p in range(1, total_pages + 1) %}
     {% if p == page %}
-    <span class="rounded-md bg-brand-900 px-3 py-1.5 text-sm font-semibold text-white">{{ p }}</span>
+    <span class="rounded-md bg-accent-600 px-3 py-1.5 text-sm font-semibold text-white">{{ p }}</span>
     {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
-    <a href="?page={{ p }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 px-3 py-1.5 text-sm text-brand-600 transition hover:bg-brand-100">{{ p }}</a>
+    <a href="?page={{ p }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 dark:border-brand-700 px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800">{{ p }}</a>
     {% elif p == 4 or p == total_pages - 3 %}
     <span class="px-1 text-brand-400">…</span>
     {% endif %}
   {% endfor %}
 
   {% if page < total_pages %}
-  <a href="?page={{ page + 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 px-3 py-1.5 text-sm text-brand-600 transition hover:bg-brand-100">Next &raquo;</a>
+  <a href="?page={{ page + 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}" class="rounded-md border border-brand-200 dark:border-brand-700 px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800">Next &raquo;</a>
   {% endif %}
 </nav>
 {% endif %}

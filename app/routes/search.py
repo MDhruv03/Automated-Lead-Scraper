@@ -95,4 +95,5 @@ async def api_job_status(job_id: int, db: Session = Depends(get_db)):
         "status": job.status,
         "total_companies": job.total_companies,
         "processed_companies": job.processed_companies,
+        "current_stage": job.current_stage,
     }

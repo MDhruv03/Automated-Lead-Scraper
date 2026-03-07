@@ -4,17 +4,20 @@
 {% block content %}
 <div class="mx-auto max-w-xl">
   <div class="mb-8 text-center">
-    <h1 class="text-2xl font-semibold tracking-tight">Discover Leads</h1>
-    <p class="mt-1 text-sm text-brand-500">Enter an industry and location to start collecting business leads.</p>
+    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500/10">
+      <svg class="h-7 w-7 text-accent-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    </div>
+    <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Discover Leads</h1>
+    <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Enter an industry and location to start collecting business leads.</p>
   </div>
 
   {% if error %}
-  <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+  <div class="mb-6 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 text-sm text-red-700 dark:text-red-400">
     {{ error }}
   </div>
   {% endif %}
 
-  <form method="POST" action="/search" class="space-y-5 rounded-xl border border-brand-200 bg-white p-8 shadow-sm">
+  <form method="POST" action="/search" class="space-y-5 rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-8 shadow-sm" id="search-form">
     <!-- Industry -->
     <div>
       <label for="industry" class="block text-xs font-semibold uppercase tracking-wider text-brand-500 mb-1.5">Industry / Niche</label>
@@ -23,9 +26,15 @@
         name="industry"
         type="text"
         required
+        autocomplete="off"
         placeholder="e.g. SaaS, Fintech, Real Estate"
-        class="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
+        class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-4 py-2.5 text-sm text-brand-900 dark:text-brand-100 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-200 dark:focus:ring-accent-500/30"
       />
+      <div class="mt-2 flex flex-wrap gap-1.5" id="industry-suggestions">
+        {% for s in ["SaaS", "E-commerce", "Fintech", "Healthcare", "Real Estate", "EdTech", "Marketing Agency", "Cybersecurity"] %}
+        <button type="button" onclick="document.getElementById('industry').value='{{ s }}'" class="rounded-full border border-brand-200 dark:border-brand-700 px-2.5 py-0.5 text-xs text-brand-500 dark:text-brand-400 transition hover:bg-accent-500 hover:text-white hover:border-accent-500">{{ s }}</button>
+        {% endfor %}
+      </div>
     </div>
 
     <!-- Location -->
@@ -36,23 +45,46 @@
         name="location"
         type="text"
         required
+        autocomplete="off"
         placeholder="e.g. Bangalore, New York, London"
-        class="w-full rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-200"
+        class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-4 py-2.5 text-sm text-brand-900 dark:text-brand-100 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-200 dark:focus:ring-accent-500/30"
       />
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        {% for s in ["New York", "San Francisco", "London", "Bangalore", "Berlin", "Toronto"] %}
+        <button type="button" onclick="document.getElementById('location').value='{{ s }}'" class="rounded-full border border-brand-200 dark:border-brand-700 px-2.5 py-0.5 text-xs text-brand-500 dark:text-brand-400 transition hover:bg-accent-500 hover:text-white hover:border-accent-500">{{ s }}</button>
+        {% endfor %}
+      </div>
     </div>
 
-    <p class="text-xs text-brand-400">Up to <strong>{{ max_results }}</strong> companies will be discovered and analysed.</p>
+    <div class="rounded-lg border border-brand-100 dark:border-brand-800 bg-brand-50/50 dark:bg-brand-800/50 p-3">
+      <p class="text-xs text-brand-500 dark:text-brand-400">
+        <strong class="text-brand-700 dark:text-brand-300">Pipeline:</strong>
+        Discover up to <strong>{{ max_results }}</strong> companies &rarr; Crawl websites &rarr; Extract contacts &rarr; Detect tech stack &rarr; NLP enrichment &rarr; Validate emails &rarr; Score &amp; rank leads
+      </p>
+    </div>
 
     <button
       type="submit"
-      class="w-full rounded-lg bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-brand-950 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
+      id="submit-btn"
+      class="w-full rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 active:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-2 dark:focus:ring-offset-brand-900 flex items-center justify-center gap-2"
     >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
       Start Lead Collection
     </button>
   </form>
 
-  <p class="mt-6 text-center text-xs text-brand-400">
-    The pipeline will crawl company websites, extract contacts, validate emails and score every lead.
+  <p class="mt-6 text-center text-xs text-brand-400 dark:text-brand-500">
+    The pipeline will crawl company websites, extract contacts, detect technology stacks, validate emails and score every lead.
   </p>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('search-form').addEventListener('submit', function() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Starting pipeline...';
+});
+</script>
 {% endblock %}

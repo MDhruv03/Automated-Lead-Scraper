@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
@@ -23,6 +24,11 @@
               800: '#27272a',
               900: '#18181b',
               950: '#09090b',
+            },
+            accent: {
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
             }
           }
         }
@@ -35,40 +41,65 @@
     .fade-in { animation: fadeIn .4s ease-in; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     .score-bar { transition: width .6s ease; }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .pulse-dot { animation: pulse-dot 1.5s infinite; }
+    @keyframes counter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-counter { animation: counter .5s ease-out forwards; }
+    .glass { background: rgba(255,255,255,.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    .dark .glass { background: rgba(24,24,27,.7); }
   </style>
+  <script>
+    // Dark mode init (before paint)
+    if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
 </head>
-<body class="h-full bg-brand-50 text-brand-900 antialiased">
+<body class="flex min-h-full flex-col bg-brand-50 text-brand-900 antialiased dark:bg-brand-950 dark:text-brand-100 transition-colors duration-300">
 
   <!-- ─── Navbar ────────────────────────────────────────────────────── -->
-  <nav class="sticky top-0 z-50 border-b border-brand-200 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+  <nav class="sticky top-0 z-50 border-b border-brand-200 dark:border-brand-800 glass">
     <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-      <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight text-brand-900">
-        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight text-brand-900 dark:text-white">
+        <svg class="h-6 w-6 text-accent-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
         </svg>
         LeadPulse
       </a>
       <div class="flex items-center gap-1">
-        <a href="/" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Dashboard</a>
-        <a href="/search" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Search</a>
-        <a href="/leads" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:bg-brand-100 hover:text-brand-900">Leads</a>
-        <a href="/export" class="rounded-md border border-brand-300 px-3 py-1.5 text-sm font-medium text-brand-700 transition hover:bg-brand-900 hover:text-white hover:border-brand-900">Export</a>
+        <a href="/" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800 hover:text-brand-900 dark:hover:text-white">Dashboard</a>
+        <a href="/search" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800 hover:text-brand-900 dark:hover:text-white">Search</a>
+        <a href="/leads" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800 hover:text-brand-900 dark:hover:text-white">Leads</a>
+        <a href="/analytics" class="rounded-md px-3 py-1.5 text-sm font-medium text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-brand-800 hover:text-brand-900 dark:hover:text-white">Analytics</a>
+        <a href="/export" class="rounded-md border border-brand-300 dark:border-brand-700 px-3 py-1.5 text-sm font-medium text-brand-700 dark:text-brand-200 transition hover:bg-accent-600 hover:text-white hover:border-accent-600">Export</a>
+        <!-- Dark mode toggle -->
+        <button id="theme-toggle" class="ml-2 rounded-md p-1.5 text-brand-500 dark:text-brand-400 transition hover:bg-brand-100 dark:hover:bg-brand-800" title="Toggle dark mode">
+          <svg id="icon-sun" class="hidden h-5 w-5 dark:block" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
+          <svg id="icon-moon" class="block h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+        </button>
       </div>
     </div>
   </nav>
 
   <!-- ─── Content ───────────────────────────────────────────────────── -->
-  <main class="mx-auto max-w-6xl px-4 py-8 sm:px-6 fade-in">
+  <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 fade-in">
     {% block content %}{% endblock %}
   </main>
 
   <!-- ─── Footer ────────────────────────────────────────────────────── -->
-  <footer class="border-t border-brand-200 bg-white">
+  <footer class="border-t border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900">
     <div class="mx-auto max-w-6xl px-4 py-4 sm:px-6">
       <p class="text-center text-xs text-brand-400">&copy; 2025 LeadPulse &middot; Automated Business Lead Intelligence</p>
     </div>
   </footer>
 
+  <!-- Dark mode script -->
+  <script>
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    });
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

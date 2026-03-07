@@ -31,24 +31,26 @@ async def export_leads(db: Session = Depends(get_db)):
             "Domain": l.company.domain if l.company else "",
             "Email": l.email or "",
             "Email Valid": "Yes" if l.email_valid else "No",
+            "Contact Role": l.role or "",
             "Phone": l.phone or "",
             "LinkedIn": l.linkedin or "",
             "Address": l.address or "",
             "Industry": l.company.industry if l.company else "",
             "City": l.company.city if l.company else "",
+            "Tech Stack": ", ".join(l.company.tech_list) if l.company and l.company.tech_list else "",
+            "Employee Estimate": l.company.employee_estimate if l.company else "",
             "Lead Score": l.lead_score,
             "Source URL": l.source_url or "",
         }
         for l in leads
     ]
 
-    df = pd.DataFrame(rows) if rows else pd.DataFrame(
-        columns=[
-            "Company Name", "Website", "Domain", "Email", "Email Valid",
-            "Phone", "LinkedIn", "Address", "Industry", "City",
-            "Lead Score", "Source URL",
-        ]
-    )
+    _cols = [
+        "Company Name", "Website", "Domain", "Email", "Email Valid",
+        "Contact Role", "Phone", "LinkedIn", "Address", "Industry", "City",
+        "Tech Stack", "Employee Estimate", "Lead Score", "Source URL",
+    ]
+    df = pd.DataFrame(rows) if rows else pd.DataFrame(columns=_cols)
 
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
