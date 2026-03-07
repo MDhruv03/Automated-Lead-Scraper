@@ -4,7 +4,7 @@ Architecture:
   1. Search Brave for directory/listing pages about {industry} in {location}
   2. Scrape those listing pages to extract actual company website links
   3. Fall back to direct search engine results with strict filtering
-  4. Validate every result: domain quality, title sanity, business signals
+  4. Apply relevance filter: every result must relate to the searched industry
 """
 
 from __future__ import annotations
@@ -41,45 +41,74 @@ def _get_headers() -> dict:
     }
 
 
-# ── Domain & title quality filters ──────────────────────────────────────────
+# ── Domain blocklist ─────────────────────────────────────────────────────────
+# Every domain here is NEVER returned as a discovered company.
 
 _BAD_DOMAINS = {
-    # Social / UGC platforms
+    # Social / UGC
     "linkedin.com", "facebook.com", "twitter.com", "x.com",
     "instagram.com", "youtube.com", "tiktok.com", "pinterest.com",
     "reddit.com", "quora.com", "threads.net",
     "zhihu.com", "stackexchange.com", "stackoverflow.com",
-    # Blogging / content platforms
+    # Blogging / content
     "medium.com", "blogspot.com", "wordpress.com", "substack.com",
-    "tumblr.com", "wix.com", "weebly.com",
-    # Reference / encyclopedias
+    "tumblr.com", "wix.com", "weebly.com", "blogger.com",
+    # Reference / encyclopedias / dictionaries
     "wikipedia.org", "wikimedia.org", "britannica.com",
-    "cambridge.org", "merriam-webster.com",
+    "cambridge.org", "merriam-webster.com", "dictionary.com",
     # E-commerce / marketplaces
-    "amazon.com", "amazon.in", "flipkart.com", "ebay.com", "alibaba.com",
+    "amazon.com", "amazon.in", "flipkart.com", "ebay.com",
+    "alibaba.com", "aliexpress.com", "etsy.com",
     # News / media
-    "bbc.com", "cnn.com", "reuters.com", "bloomberg.com",
+    "bbc.com", "bbc.co.uk", "cnn.com", "reuters.com", "bloomberg.com",
     "ndtv.com", "timesofindia.com", "indiatimes.com",
     "theguardian.com", "forbes.com", "huffpost.com",
+    "washingtonpost.com", "nytimes.com", "businessinsider.com",
+    "cnbc.com", "economictimes.com", "livemint.com",
+    "moneycontrol.com", "thehindu.com", "hindustantimes.com",
     # Search engines
     "google.com", "bing.com", "duckduckgo.com", "brave.com", "yahoo.com",
-    # Job boards / directories (used for directory scraping, not as company results)
+    # Job boards / directories
     "glassdoor.com", "glassdoor.co.in", "indeed.com", "in.indeed.com",
     "naukri.com", "ambitionbox.com", "internshala.com",
-    "wellfound.com", "zoominfo.com",
+    "wellfound.com", "zoominfo.com", "monster.com",
     "justdial.com", "sulekha.com", "tradeindia.com",
     # Government / international orgs
     "who.int", "weforum.org", "worldbank.org", "un.org",
-    # Listing / aggregator sites (we scrape these to EXTRACT companies, not to save them)
+    "nih.gov", "gov.in", "cdc.gov",
+    # Listing / aggregator sites (scraped for links, never saved as companies)
     "builtin.com", "builtinchennai.in", "builtinnyc.com",
     "tiimagazine.com", "easyleadz.com", "ssfglobal.in",
     "beststartup.in", "f6s.com", "goodfirms.co", "clutch.co",
     "dnb.com", "crunchbase.com", "owler.com", "tracxn.com",
     "loophealth.com", "18startup.com", "medicalstartups.org",
     "theceo.in", "salezshark.com",
+    # SaaS / tools (these are products, not companies in the searched industry)
+    "zoho.com", "zohocorp.com", "mailchimp.com", "hubspot.com",
+    "salesforce.com", "freshworks.com", "zendesk.com",
+    "intercom.com", "slack.com", "notion.so", "canva.com",
+    "trello.com", "asana.com", "monday.com", "airtable.com",
+    "typeform.com", "surveymonkey.com", "calendly.com",
+    "dropbox.com", "box.com", "twilio.com", "stripe.com",
+    "shopify.com", "squarespace.com", "godaddy.com",
+    "namecheap.com", "cloudflare.com", "digitalocean.com",
+    "aws.amazon.com", "azure.microsoft.com", "cloud.google.com",
+    # Health content / info sites (NOT healthcare companies)
+    "webmd.com", "healthline.com", "mayoclinic.org",
+    "medicalnewstoday.com", "everydayhealth.com",
+    "verywellhealth.com", "clevelandclinic.org",
+    "drugs.com", "rxlist.com",
+    # Recipe / lifestyle
+    "allrecipes.com", "foodnetwork.com", "epicurious.com",
+    "wikihow.com", "lifehacker.com", "buzzfeed.com",
+    "taste.com.au", "delish.com",
+    # Education
+    "coursera.org", "udemy.com", "edx.org", "khanacademy.org",
+    # Finance
+    "investopedia.com", "nerdwallet.com", "bankrate.com",
 }
 
-# Known listing / directory domains — pages from these are scraped for company links
+# Known listing / directory domains — scraped for company links
 _DIRECTORY_DOMAINS = {
     "builtin.com", "builtinchennai.in", "builtinnyc.com",
     "tiimagazine.com", "ssfglobal.in", "beststartup.in",
@@ -96,12 +125,21 @@ _BAD_TITLE_WORDS = [
     "job vacancies", "jobs in", "salary", "interview questions",
     "companies in", "companies to know", "companies leading",
     "firms in", "startups in",
+    # Signup / promotional
+    "sign up", "sign in", "log in", "login", "register",
+    "create an account", "create account", "free trial",
+    # Content / health info articles
+    "health benefits", "side effects", "nutrition facts",
+    "symptoms of", "causes of", "treatment for",
+    "quick & easy", "quick and easy", "easy steps",
+    "meaning", "definition", "dictionary",
 ]
 
-# Regex patterns for listicle/article titles like "10 Leading..." or "20 Best..."
+# Regex patterns for listicle/article titles
 _BAD_TITLE_PATTERNS = [
     re.compile(r"^\d+\s+(best|top|leading|largest|biggest|fastest|innovative|emerging)", re.I),
     re.compile(r"^(list|ranking|directory|index)\s+of\b", re.I),
+    re.compile(r":\s*(health benefits|nutrition|side effects|symptoms|meaning)", re.I),
 ]
 
 
@@ -129,13 +167,15 @@ def _is_bad_domain(domain: str) -> bool:
     """Check if a domain is in the blacklist or looks suspicious."""
     if domain in _BAD_DOMAINS:
         return True
-    # Very long domain = suspicious
+    # Also check if the registered domain (without subdomain) is bad
+    ext = tldextract.extract(domain)
+    base = f"{ext.domain}.{ext.suffix}".lower()
+    if base in _BAD_DOMAINS:
+        return True
     if len(domain) > 50:
         return True
-    # Excessive hyphens = SEO spam
     if domain.count("-") > 3:
         return True
-    # No TLD = broken
     if "." not in domain:
         return True
     return False
@@ -155,6 +195,46 @@ def _is_directory_page(url: str) -> bool:
     """Check if a URL belongs to a known directory/listing site."""
     domain = _extract_domain(url)
     return domain in _DIRECTORY_DOMAINS
+
+
+def _is_relevant_to_query(title: str, industry: str, location: str) -> bool:
+    """Check that a search result is actually relevant to the industry/location.
+
+    This is the KEY quality filter. It prevents completely unrelated results
+    (Zoho signup, Air Fryer cleaning, Coconut nutrition) from leaking through
+    when search engines return garbage.
+
+    Uses prefix matching so "Health" matches "Healthcare", "Tech" matches
+    "Technology", etc.
+    """
+    title_lower = title.lower()
+    title_words = set(re.findall(r"[a-z]{3,}", title_lower))
+
+    industry_words = {w.lower() for w in re.findall(r"[a-zA-Z]{3,}", industry)}
+    location_words = {w.lower() for w in re.findall(r"[a-zA-Z]{3,}", location)}
+
+    # Check industry: any title word shares a 4+ char prefix with an industry word
+    has_industry = False
+    for tw in title_words:
+        for iw in industry_words:
+            # Either word is a prefix of the other (min 4 chars overlap)
+            min_len = min(len(tw), len(iw))
+            if min_len >= 4 and tw[:min_len] == iw[:min_len]:
+                has_industry = True
+                break
+            # Exact substring match for shorter words
+            if len(iw) >= 4 and iw in tw:
+                has_industry = True
+                break
+            if len(tw) >= 4 and tw in iw:
+                has_industry = True
+                break
+        if has_industry:
+            break
+
+    has_location = any(w in title_lower for w in location_words)
+
+    return has_industry or has_location
 
 
 # ── Search engines ───────────────────────────────────────────────────────────
@@ -220,36 +300,6 @@ def _search_ddg_api(query: str, max_results: int) -> List[dict]:
     return results
 
 
-def _search_bing_rss(query: str, max_results: int) -> List[dict]:
-    """Fetch Bing search results via its RSS feed."""
-    results: list[dict] = []
-    encoded = quote_plus(query)
-    url = f"https://www.bing.com/search?format=rss&q={encoded}&count={min(max_results, 50)}&setlang=en"
-
-    try:
-        resp = requests.get(url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
-        resp.raise_for_status()
-    except requests.RequestException as exc:
-        logger.warning("Bing RSS request failed: %s", exc)
-        return results
-
-    soup = BeautifulSoup(resp.text, "xml")
-    for item in soup.find_all("item"):
-        title_tag = item.find("title")
-        link_tag = item.find("link")
-        if not title_tag or not link_tag:
-            continue
-        title = title_tag.get_text(strip=True)
-        link = link_tag.get_text(strip=True)
-        if title and link and link.startswith("http"):
-            results.append({"title": title, "url": link})
-            if len(results) >= max_results:
-                break
-
-    logger.info("Bing RSS returned %d results for: %s", len(results), query)
-    return results
-
-
 def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
     """Scrape DuckDuckGo HTML results as last-resort fallback."""
     results: list[dict] = []
@@ -280,10 +330,13 @@ def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
     return results
 
 
+# Bing RSS is intentionally REMOVED — it returns completely irrelevant results
+# (Zoho signup, Air Fryer cleaning, Coconut nutrition) from Render IPs.
+# Brave → DDG API → DDG HTML is sufficient.
+
 _ENGINES = [
     ("Brave", _search_brave),
     ("DDG API", _search_ddg_api),
-    ("Bing RSS", _search_bing_rss),
     ("DDG HTML", _search_duckduckgo_html),
 ]
 
@@ -326,7 +379,6 @@ def _scrape_companies_from_listing(listing_url: str) -> List[dict]:
         domain = _extract_domain(href)
         if not domain or "." not in domain:
             continue
-        # Skip same-site links and bad domains
         if domain == listing_domain or domain in seen_domains:
             continue
         if _is_bad_domain(domain):
@@ -357,7 +409,7 @@ def discover_companies(
     Strategy:
       1. Search for companies — get a mix of direct results and directory pages
       2. For any directory/listing pages found, scrape them for individual company links
-      3. Combine all results, filter, deduplicate
+      3. Apply relevance + domain + title filters, then deduplicate
     """
     max_results = min(max_results or MAX_COMPANIES_PER_JOB, MAX_COMPANIES_PER_JOB)
 
@@ -370,7 +422,7 @@ def discover_companies(
 
     seen_domains: set[str] = set()
     companies: list[DiscoveredCompany] = []
-    directory_urls: list[str] = []  # listing pages to scrape later
+    directory_urls: list[str] = []
 
     # Phase 1: Search engine results — collect direct companies + directory URLs
     for q in queries:
@@ -387,7 +439,7 @@ def discover_companies(
             except Exception:
                 continue
 
-            # If this is a directory page, save it for phase 2
+            # Directory pages → queue for phase 2
             if _is_directory_page(item["url"]):
                 if item["url"] not in directory_urls:
                     directory_urls.append(item["url"])
@@ -396,6 +448,10 @@ def discover_companies(
             if domain in seen_domains or _is_bad_domain(domain):
                 continue
             if _is_bad_title(item.get("title", "")):
+                continue
+            # KEY FILTER: result must relate to the searched industry or location
+            if not _is_relevant_to_query(item.get("title", ""), industry, location):
+                logger.debug("SKIP (irrelevant) %s: %s", domain, item.get("title", "")[:80])
                 continue
 
             seen_domains.add(domain)
@@ -408,7 +464,9 @@ def discover_companies(
             )
 
     # Phase 2: Scrape directory pages for real company links
-    for dir_url in directory_urls[:5]:  # cap to avoid too many requests
+    # (Directory-scraped results skip relevance check — the directory page itself
+    #  was already relevant, and individual company names won't contain industry keywords)
+    for dir_url in directory_urls[:5]:
         if len(companies) >= max_results:
             break
         time.sleep(CRAWL_DELAY)
