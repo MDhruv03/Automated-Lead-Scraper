@@ -9,19 +9,19 @@
 
 <!-- Summary cards -->
 <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-10">
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+  <div class="card p-5">
     <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Total Leads</p>
     <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
   </div>
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+  <div class="card p-5">
     <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Companies</p>
     <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
   </div>
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+  <div class="card p-5">
     <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Avg Score</p>
     <p class="mt-2 text-3xl font-bold tabular-nums text-accent-600">{{ avg_score }}</p>
   </div>
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-5 shadow-sm">
+  <div class="card p-5">
     <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Max Score</p>
     <p class="mt-2 text-3xl font-bold tabular-nums text-emerald-600">{{ max_score }}</p>
   </div>
@@ -30,19 +30,19 @@
 <!-- Charts grid -->
 <div class="grid gap-6 lg:grid-cols-2 mb-6">
   <!-- Score Distribution -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Score Distribution</h2>
     <canvas id="scoreChart" height="220"></canvas>
   </div>
 
   <!-- Industry Breakdown -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Industry Breakdown</h2>
     <canvas id="industryChart" height="220"></canvas>
   </div>
 
   <!-- Email Validity -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Email Validity</h2>
     <div class="flex items-center justify-center">
       <canvas id="emailChart" height="220" width="220"></canvas>
@@ -50,27 +50,27 @@
   </div>
 
   <!-- Contact Role Distribution -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Contact Roles</h2>
     <canvas id="roleChart" height="220"></canvas>
   </div>
 
   <!-- Tech Stack -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Technology Stack</h2>
     <canvas id="techChart" height="220"></canvas>
   </div>
 
   <!-- Discovery Timeline -->
-  <div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-6 shadow-sm">
+  <div class="card p-6">
     <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Discovery Timeline</h2>
     <canvas id="timelineChart" height="220"></canvas>
   </div>
 </div>
 
 {% if total_leads == 0 %}
-<div class="rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-10 text-center shadow-sm">
-  <p class="text-sm text-brand-400 italic">No data yet — <a href="/search" class="text-accent-500 underline">start a search</a> to populate analytics.</p>
+<div class="card p-10 text-center">
+  <p class="text-sm text-brand-400 italic">No data yet — <a href="/search" class="text-brand-600 dark:text-zinc-300 underline">start a search</a> to populate analytics.</p>
 </div>
 {% endif %}
 {% endblock %}

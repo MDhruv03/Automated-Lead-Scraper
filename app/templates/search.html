@@ -4,8 +4,8 @@
 {% block content %}
 <div class="mx-auto max-w-xl">
   <div class="mb-8 text-center">
-    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500/10">
-      <svg class="h-7 w-7 text-accent-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+    <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-brand-200/50 dark:border-white/[0.08]">
+      <svg class="h-6 w-6 text-brand-600 dark:text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
     </div>
     <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Discover Leads</h1>
     <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Enter an industry and location to start collecting business leads.</p>
@@ -17,7 +17,7 @@
   </div>
   {% endif %}
 
-  <form method="POST" action="/search" class="space-y-5 rounded-xl border border-brand-200 dark:border-brand-800 bg-white dark:bg-brand-900 p-8 shadow-sm" id="search-form">
+  <form method="POST" action="/search" class="space-y-5 card p-8" id="search-form">
     <!-- Industry -->
     <div>
       <label for="industry" class="block text-xs font-semibold uppercase tracking-wider text-brand-500 mb-1.5">Industry / Niche</label>
@@ -28,11 +28,11 @@
         required
         autocomplete="off"
         placeholder="e.g. SaaS, Fintech, Real Estate"
-        class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-4 py-2.5 text-sm text-brand-900 dark:text-brand-100 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-200 dark:focus:ring-accent-500/30"
+        class="w-full rounded-full border border-brand-200/60 bg-white/50 px-5 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-white/25"
       />
       <div class="mt-2 flex flex-wrap gap-1.5" id="industry-suggestions">
         {% for s in ["SaaS", "E-commerce", "Fintech", "Healthcare", "Real Estate", "EdTech", "Marketing Agency", "Cybersecurity"] %}
-        <button type="button" onclick="document.getElementById('industry').value='{{ s }}'" class="rounded-full border border-brand-200 dark:border-brand-700 px-2.5 py-0.5 text-xs text-brand-500 dark:text-brand-400 transition hover:bg-accent-500 hover:text-white hover:border-accent-500">{{ s }}</button>
+        <button type="button" onclick="document.getElementById('industry').value='{{ s }}'" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-0.5 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
         {% endfor %}
       </div>
     </div>
@@ -47,16 +47,16 @@
         required
         autocomplete="off"
         placeholder="e.g. Bangalore, New York, London"
-        class="w-full rounded-lg border border-brand-200 dark:border-brand-700 bg-brand-50 dark:bg-brand-800 px-4 py-2.5 text-sm text-brand-900 dark:text-brand-100 placeholder-brand-400 outline-none transition focus:border-accent-500 focus:ring-2 focus:ring-accent-200 dark:focus:ring-accent-500/30"
+        class="w-full rounded-full border border-brand-200/60 bg-white/50 px-5 py-2.5 text-sm text-brand-900 placeholder-brand-400 outline-none transition focus:border-brand-400 dark:border-white/10 dark:bg-white/5 dark:text-brand-100 dark:placeholder-zinc-500 dark:focus:border-white/25"
       />
       <div class="mt-2 flex flex-wrap gap-1.5">
         {% for s in ["New York", "San Francisco", "London", "Bangalore", "Berlin", "Toronto"] %}
-        <button type="button" onclick="document.getElementById('location').value='{{ s }}'" class="rounded-full border border-brand-200 dark:border-brand-700 px-2.5 py-0.5 text-xs text-brand-500 dark:text-brand-400 transition hover:bg-accent-500 hover:text-white hover:border-accent-500">{{ s }}</button>
+        <button type="button" onclick="document.getElementById('location').value='{{ s }}'" class="rounded-full border border-brand-200/50 dark:border-white/10 px-2.5 py-0.5 text-xs text-brand-500 dark:text-zinc-400 transition hover:bg-brand-900 hover:text-white hover:border-brand-900 dark:hover:bg-white dark:hover:text-black dark:hover:border-white">{{ s }}</button>
         {% endfor %}
       </div>
     </div>
 
-    <div class="rounded-lg border border-brand-100 dark:border-brand-800 bg-brand-50/50 dark:bg-brand-800/50 p-3">
+    <div class="rounded-xl border border-brand-100/50 dark:border-white/[0.06] bg-brand-50/30 dark:bg-white/[0.02] p-3">
       <p class="text-xs text-brand-500 dark:text-brand-400">
         <strong class="text-brand-700 dark:text-brand-300">Pipeline:</strong>
         Discover up to <strong>{{ max_results }}</strong> companies &rarr; Crawl websites &rarr; Extract contacts &rarr; Detect tech stack &rarr; NLP enrichment &rarr; Validate emails &rarr; Score &amp; rank leads
@@ -66,7 +66,7 @@
     <button
       type="submit"
       id="submit-btn"
-      class="w-full rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-500 active:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:ring-offset-2 dark:focus:ring-offset-brand-900 flex items-center justify-center gap-2"
+      class="w-full rounded-full bg-brand-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800 active:bg-black focus:outline-none dark:bg-white dark:text-black dark:hover:bg-zinc-200 dark:active:bg-zinc-300 flex items-center justify-center gap-2"
     >
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
       Start Lead Collection

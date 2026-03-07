@@ -7,6 +7,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'leads.db'}")
 
+# Neon / Heroku-style URLs use "postgres://" which SQLAlchemy doesn't accept.
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # ── Pipeline limits ──────────────────────────────────────────────────────────
 MAX_COMPANIES_PER_JOB: int = int(os.getenv("MAX_COMPANIES_PER_JOB", "30"))
 MAX_PAGES_PER_SITE: int = int(os.getenv("MAX_PAGES_PER_SITE", "5"))

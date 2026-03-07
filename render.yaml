@@ -6,6 +6,6 @@ services:
     dockerCommand: uv run uvicorn app.main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: DATABASE_URL
-        value: sqlite:///./leads.db
+        sync: false  # set this to your Neon PostgreSQL connection string in the Render dashboard
       - key: MAX_COMPANIES_PER_JOB
         value: "30"

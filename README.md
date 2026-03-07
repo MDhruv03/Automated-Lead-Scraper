@@ -110,15 +110,3 @@ Open [http://localhost:8000](http://localhost:8000).
 ├── render.yaml
 └── README.md
 ```
-
-## Future Improvements
-
-- Google Maps API integration
-- LinkedIn company data enrichment
-- CRM export (HubSpot, Salesforce)
-- Automated email outreach sequences
-- AI-powered lead ranking with ML models
-
----
-
-*Built with FastAPI, Tailwind CSS & spaCy.*
