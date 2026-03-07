@@ -7,7 +7,7 @@ from collections import Counter
 
 from fastapi import APIRouter, Request, Depends
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from app.database import get_db
 from app.models.company import Company
@@ -19,10 +19,47 @@ router = APIRouter()
 
 @router.get("/analytics")
 async def analytics_page(request: Request, db: Session = Depends(get_db)):
+    # ── Core counts ───────────────────────────────────────────────────
+    total_leads = db.query(func.count(Lead.id)).scalar() or 0
+    total_companies = db.query(func.count(Company.id)).scalar() or 0
+    total_jobs = db.query(func.count(Job.id)).scalar() or 0
+    completed_jobs = (
+        db.query(func.count(Job.id)).filter(Job.status == "completed").scalar() or 0
+    )
+
+    # ── Score stats ───────────────────────────────────────────────────
+    avg_score = db.query(func.avg(Lead.lead_score)).scalar() or 0
+    max_score = db.query(func.max(Lead.lead_score)).scalar() or 0
+
+    # Email validity rate
+    total_emails = (
+        db.query(func.count(Lead.id)).filter(Lead.email.isnot(None)).scalar() or 0
+    )
+    valid_emails = (
+        db.query(func.count(Lead.id)).filter(Lead.email_valid == True).scalar() or 0
+    )
+    email_rate = round(valid_emails / total_emails * 100, 1) if total_emails else 0
+
+    # Phone coverage
+    with_phone = (
+        db.query(func.count(Lead.id)).filter(Lead.phone.isnot(None)).scalar() or 0
+    )
+    phone_rate = round(with_phone / total_leads * 100, 1) if total_leads else 0
+
+    # ── Score quality tiers ───────────────────────────────────────────
+    high_q = db.query(func.count(Lead.id)).filter(Lead.lead_score >= 70).scalar() or 0
+    mid_q = (
+        db.query(func.count(Lead.id))
+        .filter(Lead.lead_score >= 40, Lead.lead_score < 70)
+        .scalar()
+        or 0
+    )
+    low_q = db.query(func.count(Lead.id)).filter(Lead.lead_score < 40).scalar() or 0
+
     # ── Score distribution (buckets of 10) ────────────────────────────
-    leads = db.query(Lead.lead_score).all()
+    scores = db.query(Lead.lead_score).all()
     buckets = {f"{i}-{i+9}": 0 for i in range(0, 100, 10)}
-    for (score,) in leads:
+    for (score,) in scores:
         key = f"{(score // 10) * 10}-{(score // 10) * 10 + 9}"
         if key in buckets:
             buckets[key] += 1
@@ -33,37 +70,21 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
         .filter(Company.industry.isnot(None))
         .group_by(Company.industry)
         .order_by(func.count(Company.id).desc())
-        .limit(10)
+        .limit(8)
         .all()
     )
 
-    # ── Email validity ────────────────────────────────────────────────
-    total_emails = db.query(func.count(Lead.id)).filter(Lead.email.isnot(None)).scalar() or 0
-    valid_emails = db.query(func.count(Lead.id)).filter(Lead.email_valid == True).scalar() or 0
-    invalid_emails = total_emails - valid_emails
-
-    # ── Role distribution ─────────────────────────────────────────────
-    role_rows = (
-        db.query(Lead.role, func.count(Lead.id))
-        .filter(Lead.role.isnot(None))
-        .group_by(Lead.role)
-        .order_by(func.count(Lead.id).desc())
+    # ── Location / city breakdown ─────────────────────────────────────
+    city_rows = (
+        db.query(Company.city, func.count(Company.id))
+        .filter(Company.city.isnot(None), Company.city != "")
+        .group_by(Company.city)
+        .order_by(func.count(Company.id).desc())
+        .limit(8)
         .all()
     )
 
-    # ── Tech stack distribution ───────────────────────────────────────
-    companies = db.query(Company.tech_stack).filter(Company.tech_stack.isnot(None)).all()
-    tech_counter: Counter[str] = Counter()
-    for (ts,) in companies:
-        try:
-            techs = json.loads(ts) if ts else []
-            for t in techs:
-                tech_counter[t] += 1
-        except (json.JSONDecodeError, TypeError):
-            pass
-    top_techs = tech_counter.most_common(12)
-
-    # ── Job timeline ──────────────────────────────────────────────────
+    # ── Discovery timeline (last 15 completed jobs) ───────────────────
     jobs = (
         db.query(Job)
         .filter(Job.status == "completed")
@@ -71,38 +92,74 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
         .limit(15)
         .all()
     )
-    timeline = [
-        {
-            "label": j.created_at.strftime("%b %d %H:%M") if j.created_at else "?",
-            "companies": j.total_companies or 0,
-        }
-        for j in reversed(jobs)
-    ]
+    timeline = []
+    for j in reversed(jobs):
+        lead_count = (
+            db.query(func.count(Lead.id))
+            .join(Company, Lead.company_id == Company.id)
+            .filter(Company.job_id == j.id)
+            .scalar()
+            or 0
+        )
+        timeline.append(
+            {
+                "label": j.query[:18] if j.query else "?",
+                "discovered": j.total_companies or 0,
+                "saved": lead_count,
+            }
+        )
 
-    # ── Summary stats ─────────────────────────────────────────────────
-    avg_score = db.query(func.avg(Lead.lead_score)).scalar() or 0
-    max_score = db.query(func.max(Lead.lead_score)).scalar() or 0
-    total_companies = db.query(func.count(Company.id)).scalar() or 0
+    # ── Top 10 leads ──────────────────────────────────────────────────
+    top_leads = (
+        db.query(Lead)
+        .options(joinedload(Lead.company))
+        .order_by(Lead.lead_score.desc())
+        .limit(10)
+        .all()
+    )
+
+    # ── Avg job duration ──────────────────────────────────────────────
+    avg_duration = (
+        db.query(func.avg(Job.duration_seconds))
+        .filter(Job.duration_seconds.isnot(None))
+        .scalar()
+    )
+    avg_duration_display = ""
+    if avg_duration:
+        secs = int(avg_duration)
+        if secs >= 60:
+            avg_duration_display = f"{secs // 60}m {secs % 60}s"
+        else:
+            avg_duration_display = f"{secs}s"
 
     return request.app.state.templates.TemplateResponse(
         "analytics.html",
         {
             "request": request,
+            # stat cards
+            "total_leads": total_leads,
+            "total_companies": total_companies,
+            "avg_score": round(avg_score, 1),
+            "max_score": int(max_score),
+            "email_rate": email_rate,
+            "phone_rate": phone_rate,
+            "completed_jobs": completed_jobs,
+            "avg_duration": avg_duration_display or "—",
+            # quality tiers
+            "high_q": high_q,
+            "mid_q": mid_q,
+            "low_q": low_q,
+            # charts
             "score_labels": json.dumps(list(buckets.keys())),
             "score_data": json.dumps(list(buckets.values())),
             "industry_labels": json.dumps([r[0] for r in industry_rows]),
             "industry_data": json.dumps([r[1] for r in industry_rows]),
-            "email_valid": valid_emails,
-            "email_invalid": invalid_emails,
-            "role_labels": json.dumps([r[0] for r in role_rows]),
-            "role_data": json.dumps([r[1] for r in role_rows]),
-            "tech_labels": json.dumps([t[0] for t in top_techs]),
-            "tech_data": json.dumps([t[1] for t in top_techs]),
+            "city_labels": json.dumps([r[0] for r in city_rows]),
+            "city_data": json.dumps([r[1] for r in city_rows]),
             "timeline_labels": json.dumps([t["label"] for t in timeline]),
-            "timeline_data": json.dumps([t["companies"] for t in timeline]),
-            "avg_score": round(avg_score, 1),
-            "max_score": int(max_score),
-            "total_companies": total_companies,
-            "total_leads": len(leads),
+            "timeline_discovered": json.dumps([t["discovered"] for t in timeline]),
+            "timeline_saved": json.dumps([t["saved"] for t in timeline]),
+            # top leads
+            "top_leads": top_leads,
         },
     )

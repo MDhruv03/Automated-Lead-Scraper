@@ -4,205 +4,299 @@
 {% block content %}
 <div class="mb-8">
   <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Analytics</h1>
-  <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Deep insights into your lead intelligence data.</p>
-</div>
-
-<!-- Summary cards -->
-<div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-10">
-  <div class="card p-5">
-    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Total Leads</p>
-    <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
-  </div>
-  <div class="card p-5">
-    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Companies</p>
-    <p class="mt-2 text-3xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
-  </div>
-  <div class="card p-5">
-    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Avg Score</p>
-    <p class="mt-2 text-3xl font-bold tabular-nums text-accent-600">{{ avg_score }}</p>
-  </div>
-  <div class="card p-5">
-    <p class="text-xs font-medium uppercase tracking-wider text-brand-400">Max Score</p>
-    <p class="mt-2 text-3xl font-bold tabular-nums text-emerald-600">{{ max_score }}</p>
-  </div>
-</div>
-
-<!-- Charts grid -->
-<div class="grid gap-6 lg:grid-cols-2 mb-6">
-  <!-- Score Distribution -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Score Distribution</h2>
-    <canvas id="scoreChart" height="220"></canvas>
-  </div>
-
-  <!-- Industry Breakdown -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Industry Breakdown</h2>
-    <canvas id="industryChart" height="220"></canvas>
-  </div>
-
-  <!-- Email Validity -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Email Validity</h2>
-    <div class="flex items-center justify-center">
-      <canvas id="emailChart" height="220" width="220"></canvas>
-    </div>
-  </div>
-
-  <!-- Contact Role Distribution -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Contact Roles</h2>
-    <canvas id="roleChart" height="220"></canvas>
-  </div>
-
-  <!-- Tech Stack -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Technology Stack</h2>
-    <canvas id="techChart" height="220"></canvas>
-  </div>
-
-  <!-- Discovery Timeline -->
-  <div class="card p-6">
-    <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-brand-500">Discovery Timeline</h2>
-    <canvas id="timelineChart" height="220"></canvas>
-  </div>
+  <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Performance metrics and lead intelligence overview.</p>
 </div>
 
 {% if total_leads == 0 %}
-<div class="card p-10 text-center">
-  <p class="text-sm text-brand-400 italic">No data yet — <a href="/search" class="text-brand-600 dark:text-zinc-300 underline">start a search</a> to populate analytics.</p>
+<div class="card p-12 text-center">
+  <svg class="mx-auto mb-4 h-10 w-10 text-brand-300 dark:text-zinc-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"/></svg>
+  <p class="text-sm text-brand-400 dark:text-zinc-500">No data yet — <a href="/search" class="text-accent-600 dark:text-accent-400 underline underline-offset-2">start a search</a> to populate analytics.</p>
 </div>
+{% else %}
+
+<!-- ─── Stat Cards Row 1 ──────────────────────────────────────────── -->
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-4">
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Total Leads</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Companies</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Avg Score</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums text-accent-600">{{ avg_score }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Best Score</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums text-emerald-600">{{ max_score }}</p>
+  </div>
+</div>
+
+<!-- ─── Stat Cards Row 2 ──────────────────────────────────────────── -->
+<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-8">
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Email Validity</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ email_rate }}%</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Has Phone</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ phone_rate }}%</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Jobs Done</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ completed_jobs }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400">Avg Duration</p>
+    <p class="mt-1.5 text-2xl font-bold tabular-nums dark:text-white">{{ avg_duration }}</p>
+  </div>
+</div>
+
+<!-- ─── Quality Tiers ─────────────────────────────────────────────── -->
+<div class="card p-5 mb-8">
+  <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Lead Quality Breakdown</h2>
+  <div class="flex items-center gap-3">
+    {% set total_q = high_q + mid_q + low_q %}
+    {% if total_q > 0 %}
+    <div class="flex h-3 flex-1 overflow-hidden rounded-full bg-brand-100 dark:bg-zinc-800">
+      {% if high_q %}
+      <div class="h-full bg-emerald-500 transition-all" style="width:{{ (high_q / total_q * 100)|round(1) }}%" title="High quality"></div>
+      {% endif %}
+      {% if mid_q %}
+      <div class="h-full bg-amber-400 transition-all" style="width:{{ (mid_q / total_q * 100)|round(1) }}%" title="Medium quality"></div>
+      {% endif %}
+      {% if low_q %}
+      <div class="h-full bg-red-400 transition-all" style="width:{{ (low_q / total_q * 100)|round(1) }}%" title="Low quality"></div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="flex h-3 flex-1 rounded-full bg-brand-100 dark:bg-zinc-800"></div>
+    {% endif %}
+  </div>
+  <div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs">
+    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-emerald-500"></span> High (70+) <span class="font-semibold dark:text-white">{{ high_q }}</span></span>
+    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-amber-400"></span> Medium (40-69) <span class="font-semibold dark:text-white">{{ mid_q }}</span></span>
+    <span class="flex items-center gap-1.5"><span class="inline-block h-2 w-2 rounded-full bg-red-400"></span> Low (&lt;40) <span class="font-semibold dark:text-white">{{ low_q }}</span></span>
+  </div>
+</div>
+
+<!-- ─── Charts Row 1 ──────────────────────────────────────────────── -->
+<div class="grid gap-5 lg:grid-cols-2 mb-5">
+  <!-- Score Distribution -->
+  <div class="card p-5">
+    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Score Distribution</h2>
+    <canvas id="scoreChart" height="200"></canvas>
+  </div>
+
+  <!-- Industry Breakdown -->
+  <div class="card p-5">
+    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Industry Breakdown</h2>
+    <canvas id="industryChart" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ─── Charts Row 2 ──────────────────────────────────────────────── -->
+<div class="grid gap-5 lg:grid-cols-2 mb-5">
+  <!-- City Distribution -->
+  <div class="card p-5">
+    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Locations</h2>
+    <canvas id="cityChart" height="200"></canvas>
+  </div>
+
+  <!-- Discovery Timeline -->
+  <div class="card p-5">
+    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Discovery Funnel by Job</h2>
+    <canvas id="timelineChart" height="200"></canvas>
+  </div>
+</div>
+
+<!-- ─── Top Leads ─────────────────────────────────────────────────── -->
+{% if top_leads %}
+<div class="card overflow-hidden mb-6">
+  <div class="px-5 pt-5 pb-3">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Top Leads</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-brand-100 dark:border-white/[0.06] text-left text-[11px] font-medium uppercase tracking-wider text-brand-400">
+          <th class="px-5 py-2.5">#</th>
+          <th class="px-5 py-2.5">Company</th>
+          <th class="px-5 py-2.5">Email</th>
+          <th class="px-5 py-2.5">Phone</th>
+          <th class="px-5 py-2.5 text-right">Score</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-brand-50 dark:divide-white/[0.04]">
+        {% for lead in top_leads %}
+        <tr class="hover:bg-brand-50/50 dark:hover:bg-white/[0.02] transition-colors">
+          <td class="px-5 py-2.5 text-brand-400 tabular-nums">{{ loop.index }}</td>
+          <td class="px-5 py-2.5 font-medium dark:text-white truncate max-w-[12rem]">{{ lead.company.name if lead.company else '—' }}</td>
+          <td class="px-5 py-2.5 text-brand-500 dark:text-zinc-400 truncate max-w-[14rem]">
+            {% if lead.email %}
+            <span class="{% if lead.email_valid %}text-emerald-600 dark:text-emerald-400{% endif %}">{{ lead.email }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-5 py-2.5 text-brand-500 dark:text-zinc-400">{{ lead.phone or '—' }}</td>
+          <td class="px-5 py-2.5 text-right">
+            <span class="inline-flex min-w-[2.5rem] items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold
+              {% if lead.lead_score >= 70 %}bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400
+              {% elif lead.lead_score >= 40 %}bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400
+              {% else %}bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400{% endif %}">{{ lead.lead_score|int }}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if total_leads > 0 %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const isDark = document.documentElement.classList.contains('dark');
-const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
 const textColor = isDark ? '#a1a1aa' : '#71717a';
 Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
+Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+Chart.defaults.font.size = 11;
 
-const COLORS = ['#14b8a6','#06b6d4','#f59e0b','#ef4444','#10b981','#64748b','#f97316','#0891b2','#78716c','#84cc16','#0d9488','#a3a3a3'];
+const PALETTE = [
+  '#14b8a6','#06b6d4','#f59e0b','#10b981','#ef4444',
+  '#64748b','#f97316','#0891b2','#84cc16','#0d9488'
+];
+const tooltip = {
+  backgroundColor: isDark ? '#27272a' : '#fff',
+  titleColor: isDark ? '#fff' : '#18181b',
+  bodyColor: isDark ? '#a1a1aa' : '#52525b',
+  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+  borderWidth: 1,
+  cornerRadius: 8,
+  padding: 10,
+  displayColors: true,
+  boxPadding: 4,
+};
+const noLegend = { legend: { display: false } };
 
-// Score Distribution
+// ── Score Distribution ───────────────────────────────────────────
 new Chart(document.getElementById('scoreChart'), {
   type: 'bar',
   data: {
     labels: {{ score_labels | safe }},
     datasets: [{
-      label: 'Leads',
       data: {{ score_data | safe }},
-      backgroundColor: '#14b8a6',
-      borderRadius: 6,
+      backgroundColor: {{ score_data | safe }}.map((_, i) => {
+        const colors = ['#ef4444','#ef4444','#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b','#10b981','#10b981','#14b8a6'];
+        return colors[i] || '#14b8a6';
+      }),
+      borderRadius: 4,
       borderSkipped: false,
+      maxBarThickness: 36,
     }]
   },
   options: {
     responsive: true,
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    plugins: { ...noLegend, tooltip },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+      x: { grid: { display: false } }
+    }
   }
 });
 
-// Industry Breakdown
+// ── Industry Breakdown ───────────────────────────────────────────
 new Chart(document.getElementById('industryChart'), {
   type: 'doughnut',
   data: {
     labels: {{ industry_labels | safe }},
     datasets: [{
       data: {{ industry_data | safe }},
-      backgroundColor: COLORS,
+      backgroundColor: PALETTE,
       borderWidth: 0,
+      hoverOffset: 6,
     }]
   },
   options: {
     responsive: true,
-    plugins: { legend: { position: 'right', labels: { boxWidth: 12, padding: 12 } } }
+    cutout: '60%',
+    plugins: {
+      tooltip,
+      legend: { position: 'right', labels: { boxWidth: 10, padding: 10, font: { size: 11 } } }
+    }
   }
 });
 
-// Email Validity
-new Chart(document.getElementById('emailChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Valid', 'Invalid'],
-    datasets: [{
-      data: [{{ email_valid }}, {{ email_invalid }}],
-      backgroundColor: ['#10b981', '#ef4444'],
-      borderWidth: 0,
-    }]
-  },
-  options: {
-    responsive: true,
-    cutout: '65%',
-    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } } }
-  }
-});
-
-// Contact Roles
-new Chart(document.getElementById('roleChart'), {
+// ── City Distribution ────────────────────────────────────────────
+const cityLabels = {{ city_labels | safe }};
+new Chart(document.getElementById('cityChart'), {
   type: 'bar',
   data: {
-    labels: {{ role_labels | safe }},
+    labels: cityLabels,
     datasets: [{
-      label: 'Count',
-      data: {{ role_data | safe }},
-      backgroundColor: COLORS.slice(0, {{ role_labels | safe }}.length),
-      borderRadius: 6,
-      borderSkipped: false,
-    }]
-  },
-  options: {
-    indexAxis: 'y',
-    responsive: true,
-    plugins: { legend: { display: false } },
-    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
-  }
-});
-
-// Tech Stack
-new Chart(document.getElementById('techChart'), {
-  type: 'bar',
-  data: {
-    labels: {{ tech_labels | safe }},
-    datasets: [{
-      label: 'Companies',
-      data: {{ tech_data | safe }},
+      data: {{ city_data | safe }},
       backgroundColor: '#06b6d4',
-      borderRadius: 6,
+      borderRadius: 4,
       borderSkipped: false,
+      maxBarThickness: 28,
     }]
   },
   options: {
     indexAxis: 'y',
     responsive: true,
-    plugins: { legend: { display: false } },
-    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    plugins: { ...noLegend, tooltip },
+    scales: {
+      x: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+      y: { grid: { display: false } }
+    }
   }
 });
 
-// Discovery Timeline
+// ── Discovery Funnel ─────────────────────────────────────────────
 new Chart(document.getElementById('timelineChart'), {
-  type: 'line',
+  type: 'bar',
   data: {
     labels: {{ timeline_labels | safe }},
-    datasets: [{
-      label: 'Companies Discovered',
-      data: {{ timeline_data | safe }},
-      borderColor: '#14b8a6',
-      backgroundColor: 'rgba(20,184,166,0.1)',
-      fill: true,
-      tension: 0.3,
-      pointBackgroundColor: '#14b8a6',
-    }]
+    datasets: [
+      {
+        label: 'Discovered',
+        data: {{ timeline_discovered | safe }},
+        backgroundColor: isDark ? 'rgba(20,184,166,0.15)' : 'rgba(20,184,166,0.2)',
+        borderColor: '#14b8a6',
+        borderWidth: 1,
+        borderRadius: 4,
+        borderSkipped: false,
+        maxBarThickness: 24,
+      },
+      {
+        label: 'Saved',
+        data: {{ timeline_saved | safe }},
+        backgroundColor: '#14b8a6',
+        borderRadius: 4,
+        borderSkipped: false,
+        maxBarThickness: 24,
+      }
+    ]
   },
   options: {
     responsive: true,
-    plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+    plugins: {
+      tooltip,
+      legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: gridColor } },
+      x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } }
+    }
   }
 });
 </script>
+{% endif %}
 {% endblock %}
