@@ -133,10 +133,10 @@
           <td class="py-2.5 pr-4">
             {% if lead.role %}
             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium
-              {% if lead.role == 'Executive' %}bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400
+              {% if lead.role == 'Executive' %}bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400
               {% elif lead.role == 'Sales' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
               {% elif lead.role == 'Technical' %}bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400
-              {% elif lead.role == 'Marketing' %}bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400
+              {% elif lead.role == 'Marketing' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
               {% else %}bg-brand-100 dark:bg-brand-800 text-brand-600 dark:text-brand-400{% endif %}">
               {{ lead.role }}
             </span>
