@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """LeadPulse Local Worker – polls the deployed server for pending jobs,
 runs the discovery/crawling/extraction pipeline locally, and sends results
 back via API.
@@ -26,6 +25,13 @@ import time
 from datetime import datetime, timezone
 
 import requests as http_client
+
+# Load .env file so LEADPULSE_SERVER / WORKER_SECRET are picked up automatically
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed – rely on real env vars or CLI flags
 
 # ── Ensure project root is on sys.path so service imports work ────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
