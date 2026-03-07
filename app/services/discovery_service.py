@@ -1,4 +1,11 @@
-"""Discovery service – finds businesses via multiple search engines with fallback."""
+"""Discovery service – finds real businesses via directory scraping + search engines.
+
+Architecture:
+  1. Search Brave for directory/listing pages about {industry} in {location}
+  2. Scrape those listing pages to extract actual company website links
+  3. Fall back to direct search engine results with strict filtering
+  4. Validate every result: domain quality, title sanity, business signals
+"""
 
 from __future__ import annotations
 
@@ -34,6 +41,70 @@ def _get_headers() -> dict:
     }
 
 
+# ── Domain & title quality filters ──────────────────────────────────────────
+
+_BAD_DOMAINS = {
+    # Social / UGC platforms
+    "linkedin.com", "facebook.com", "twitter.com", "x.com",
+    "instagram.com", "youtube.com", "tiktok.com", "pinterest.com",
+    "reddit.com", "quora.com", "threads.net",
+    "zhihu.com", "stackexchange.com", "stackoverflow.com",
+    # Blogging / content platforms
+    "medium.com", "blogspot.com", "wordpress.com", "substack.com",
+    "tumblr.com", "wix.com", "weebly.com",
+    # Reference / encyclopedias
+    "wikipedia.org", "wikimedia.org", "britannica.com",
+    "cambridge.org", "merriam-webster.com",
+    # E-commerce / marketplaces
+    "amazon.com", "amazon.in", "flipkart.com", "ebay.com", "alibaba.com",
+    # News / media
+    "bbc.com", "cnn.com", "reuters.com", "bloomberg.com",
+    "ndtv.com", "timesofindia.com", "indiatimes.com",
+    "theguardian.com", "forbes.com", "huffpost.com",
+    # Search engines
+    "google.com", "bing.com", "duckduckgo.com", "brave.com", "yahoo.com",
+    # Job boards / directories (used for directory scraping, not as company results)
+    "glassdoor.com", "glassdoor.co.in", "indeed.com", "in.indeed.com",
+    "naukri.com", "ambitionbox.com", "internshala.com",
+    "wellfound.com", "zoominfo.com",
+    "justdial.com", "sulekha.com", "tradeindia.com",
+    # Government / international orgs
+    "who.int", "weforum.org", "worldbank.org", "un.org",
+    # Listing / aggregator sites (we scrape these to EXTRACT companies, not to save them)
+    "builtin.com", "builtinchennai.in", "builtinnyc.com",
+    "tiimagazine.com", "easyleadz.com", "ssfglobal.in",
+    "beststartup.in", "f6s.com", "goodfirms.co", "clutch.co",
+    "dnb.com", "crunchbase.com", "owler.com", "tracxn.com",
+    "loophealth.com", "18startup.com", "medicalstartups.org",
+    "theceo.in", "salezshark.com",
+}
+
+# Known listing / directory domains — pages from these are scraped for company links
+_DIRECTORY_DOMAINS = {
+    "builtin.com", "builtinchennai.in", "builtinnyc.com",
+    "tiimagazine.com", "ssfglobal.in", "beststartup.in",
+    "f6s.com", "goodfirms.co", "clutch.co", "easyleadz.com",
+    "medicalstartups.org", "ambitionbox.com", "wellfound.com",
+    "startupindia.gov.in", "tracxn.com", "theceo.in", "salezshark.com",
+}
+
+_BAD_TITLE_WORDS = [
+    "how to", "guide", "tips", "steps", "recipe", "review",
+    "best way", "top 10", "top 5", "top 20", "top 40", "top 50", "what is",
+    "tutorial", "explained", "vs ", "versus", "comparison",
+    "buy online", "shop now", "download", "subscribe",
+    "job vacancies", "jobs in", "salary", "interview questions",
+    "companies in", "companies to know", "companies leading",
+    "firms in", "startups in",
+]
+
+# Regex patterns for listicle/article titles like "10 Leading..." or "20 Best..."
+_BAD_TITLE_PATTERNS = [
+    re.compile(r"^\d+\s+(best|top|leading|largest|biggest|fastest|innovative|emerging)", re.I),
+    re.compile(r"^(list|ranking|directory|index)\s+of\b", re.I),
+]
+
+
 @dataclass
 class DiscoveredCompany:
     name: str
@@ -54,10 +125,42 @@ def _clean_url(url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
-# ── Engine 1: Brave Search HTML (best quality results) ───────────────────────
+def _is_bad_domain(domain: str) -> bool:
+    """Check if a domain is in the blacklist or looks suspicious."""
+    if domain in _BAD_DOMAINS:
+        return True
+    # Very long domain = suspicious
+    if len(domain) > 50:
+        return True
+    # Excessive hyphens = SEO spam
+    if domain.count("-") > 3:
+        return True
+    # No TLD = broken
+    if "." not in domain:
+        return True
+    return False
+
+
+def _is_bad_title(title: str) -> bool:
+    """Reject titles that indicate blog posts, articles, not real companies."""
+    lower = title.lower()
+    if any(kw in lower for kw in _BAD_TITLE_WORDS):
+        return True
+    if any(p.search(title) for p in _BAD_TITLE_PATTERNS):
+        return True
+    return False
+
+
+def _is_directory_page(url: str) -> bool:
+    """Check if a URL belongs to a known directory/listing site."""
+    domain = _extract_domain(url)
+    return domain in _DIRECTORY_DOMAINS
+
+
+# ── Search engines ───────────────────────────────────────────────────────────
 
 def _search_brave(query: str, max_results: int) -> List[dict]:
-    """Scrape Brave Search HTML results (high quality, no API key needed)."""
+    """Scrape Brave Search HTML results."""
     results: list[dict] = []
     encoded = quote_plus(query)
     url = f"https://search.brave.com/search?q={encoded}"
@@ -80,30 +183,25 @@ def _search_brave(query: str, max_results: int) -> List[dict]:
         parsed = urlparse(href)
         if not parsed.netloc or "brave" in parsed.netloc:
             continue
-        # Deduplicate by host within this result set
         if parsed.netloc in seen_hosts:
             continue
         seen_hosts.add(parsed.netloc)
 
-        # Extract clean title from the snippet heading
         title_el = snippet.select_one(".title") or snippet.select_one("span") or a_tag
         title = title_el.get_text(strip=True)[:200] if title_el else parsed.netloc
         results.append({"title": title, "url": href})
         if len(results) >= max_results:
             break
 
-    logger.info("Brave Search returned %d results for: %s", len(results), query)
+    logger.info("Brave returned %d results for: %s", len(results), query)
     return results
 
 
-# ── Engine 2: duckduckgo-search library (DDG internal JSON API) ──────────────
-
 def _search_ddg_api(query: str, max_results: int) -> List[dict]:
-    """Use the duckduckgo-search library (most reliable from cloud servers)."""
+    """Use the duckduckgo-search library."""
     try:
         from duckduckgo_search import DDGS
     except ImportError:
-        logger.warning("duckduckgo-search package not installed")
         return []
 
     results: list[dict] = []
@@ -122,10 +220,8 @@ def _search_ddg_api(query: str, max_results: int) -> List[dict]:
     return results
 
 
-# ── Engine 3: Bing RSS feed (no JS rendering needed) ─────────────────────────
-
 def _search_bing_rss(query: str, max_results: int) -> List[dict]:
-    """Fetch Bing search results via the RSS feed endpoint."""
+    """Fetch Bing search results via its RSS feed."""
     results: list[dict] = []
     encoded = quote_plus(query)
     url = f"https://www.bing.com/search?format=rss&q={encoded}&count={min(max_results, 50)}&setlang=en"
@@ -138,7 +234,6 @@ def _search_bing_rss(query: str, max_results: int) -> List[dict]:
         return results
 
     soup = BeautifulSoup(resp.text, "xml")
-
     for item in soup.find_all("item"):
         title_tag = item.find("title")
         link_tag = item.find("link")
@@ -155,8 +250,6 @@ def _search_bing_rss(query: str, max_results: int) -> List[dict]:
     return results
 
 
-# ── Engine 4: DuckDuckGo HTML scraping (works on non-blocked IPs) ────────────
-
 def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
     """Scrape DuckDuckGo HTML results as last-resort fallback."""
     results: list[dict] = []
@@ -171,7 +264,6 @@ def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
         return results
 
     soup = BeautifulSoup(resp.text, "lxml")
-
     for result in soup.select(".result__a"):
         href = result.get("href", "")
         title = result.get_text(strip=True)
@@ -187,8 +279,6 @@ def _search_duckduckgo_html(query: str, max_results: int) -> List[dict]:
     logger.info("DuckDuckGo HTML returned %d results for: %s", len(results), query)
     return results
 
-
-# ── Fallback orchestrator ────────────────────────────────────────────────────
 
 _ENGINES = [
     ("Brave", _search_brave),
@@ -213,12 +303,62 @@ def _search_with_fallback(query: str, max_results: int) -> List[dict]:
     return []
 
 
+# ── Directory page scraping ──────────────────────────────────────────────────
+
+def _scrape_companies_from_listing(listing_url: str) -> List[dict]:
+    """Scrape a directory/listing page and extract individual company links."""
+    companies: list[dict] = []
+    try:
+        resp = requests.get(listing_url, headers=_get_headers(), timeout=REQUEST_TIMEOUT)
+        if resp.status_code != 200:
+            return companies
+    except requests.RequestException:
+        return companies
+
+    soup = BeautifulSoup(resp.text, "lxml")
+    listing_domain = _extract_domain(listing_url)
+    seen_domains: set[str] = set()
+
+    for a_tag in soup.select("a[href^='http']"):
+        href = a_tag.get("href", "").split("?")[0].split("#")[0]
+        if not href:
+            continue
+        domain = _extract_domain(href)
+        if not domain or "." not in domain:
+            continue
+        # Skip same-site links and bad domains
+        if domain == listing_domain or domain in seen_domains:
+            continue
+        if _is_bad_domain(domain):
+            continue
+
+        title = a_tag.get_text(strip=True)[:200]
+        if not title or len(title) < 2:
+            continue
+        if _is_bad_title(title):
+            continue
+
+        seen_domains.add(domain)
+        companies.append({"title": title, "url": href})
+
+    logger.info("Scraped %d companies from listing: %s", len(companies), listing_url)
+    return companies
+
+
+# ── Main discovery function ──────────────────────────────────────────────────
+
 def discover_companies(
     industry: str,
     location: str,
     max_results: int | None = None,
 ) -> List[DiscoveredCompany]:
-    """Return a list of discovered companies for the given industry & location."""
+    """Return a list of discovered companies for the given industry & location.
+
+    Strategy:
+      1. Search for companies — get a mix of direct results and directory pages
+      2. For any directory/listing pages found, scrape them for individual company links
+      3. Combine all results, filter, deduplicate
+    """
     max_results = min(max_results or MAX_COMPANIES_PER_JOB, MAX_COMPANIES_PER_JOB)
 
     queries = [
@@ -230,7 +370,9 @@ def discover_companies(
 
     seen_domains: set[str] = set()
     companies: list[DiscoveredCompany] = []
+    directory_urls: list[str] = []  # listing pages to scrape later
 
+    # Phase 1: Search engine results — collect direct companies + directory URLs
     for q in queries:
         if len(companies) >= max_results:
             break
@@ -245,21 +387,15 @@ def discover_companies(
             except Exception:
                 continue
 
-            # Skip social / directory domains
-            if domain in seen_domains:
+            # If this is a directory page, save it for phase 2
+            if _is_directory_page(item["url"]):
+                if item["url"] not in directory_urls:
+                    directory_urls.append(item["url"])
                 continue
-            skip_domains = {
-                "linkedin.com", "facebook.com", "twitter.com", "x.com",
-                "instagram.com", "youtube.com", "wikipedia.org",
-                "yelp.com", "crunchbase.com", "glassdoor.com",
-                "glassdoor.co.in", "indeed.com", "in.indeed.com",
-                "zoominfo.com", "bloomberg.com", "quora.com",
-                "duckduckgo.com", "google.com", "bing.com",
-                "who.int", "weforum.org",
-                "ambitionbox.com", "naukri.com", "justdial.com",
-                "internshala.com", "wellfound.com",
-            }
-            if domain in skip_domains:
+
+            if domain in seen_domains or _is_bad_domain(domain):
+                continue
+            if _is_bad_title(item.get("title", "")):
                 continue
 
             seen_domains.add(domain)
@@ -271,5 +407,34 @@ def discover_companies(
                 )
             )
 
-    logger.info("Discovered %d companies for '%s in %s'", len(companies), industry, location)
+    # Phase 2: Scrape directory pages for real company links
+    for dir_url in directory_urls[:5]:  # cap to avoid too many requests
+        if len(companies) >= max_results:
+            break
+        time.sleep(CRAWL_DELAY)
+        scraped = _scrape_companies_from_listing(dir_url)
+
+        for item in scraped:
+            if len(companies) >= max_results:
+                break
+            try:
+                domain = _extract_domain(item["url"])
+            except Exception:
+                continue
+            if domain in seen_domains or _is_bad_domain(domain):
+                continue
+
+            seen_domains.add(domain)
+            companies.append(
+                DiscoveredCompany(
+                    name=item["title"][:300],
+                    website=_clean_url(item["url"]),
+                    domain=domain,
+                )
+            )
+
+    logger.info(
+        "Discovered %d companies for '%s in %s' (scraped %d directory pages)",
+        len(companies), industry, location, len(directory_urls),
+    )
     return companies

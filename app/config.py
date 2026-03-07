@@ -17,6 +17,9 @@ MAX_PAGES_PER_SITE: int = int(os.getenv("MAX_PAGES_PER_SITE", "5"))
 REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT", "10"))
 CRAWL_DELAY: float = float(os.getenv("CRAWL_DELAY", "1.0"))
 
+# ── Quality thresholds ───────────────────────────────────────────────────────
+MIN_LEAD_SCORE: int = int(os.getenv("MIN_LEAD_SCORE", "30"))
+
 # ── App metadata ─────────────────────────────────────────────────────────────
 APP_TITLE: str = "LeadPulse"
 APP_DESCRIPTION: str = "Automated Business Lead Intelligence Platform"
