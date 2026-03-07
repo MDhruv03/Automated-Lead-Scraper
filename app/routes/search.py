@@ -126,11 +126,15 @@ async def delete_all_jobs(db: Session = Depends(get_db)):
     db.commit()
     # Reset auto-increment so next IDs start from 1
     dialect = db.bind.dialect.name
-    if dialect == "sqlite":
-        for tbl in ("leads", "companies", "jobs"):
-            db.execute(text(f"DELETE FROM sqlite_sequence WHERE name='{tbl}'"))
-    elif dialect == "postgresql":
-        for tbl in ("leads", "companies", "jobs"):
-            db.execute(text(f"ALTER SEQUENCE {tbl}_id_seq RESTART WITH 1"))
-    db.commit()
+    try:
+        if dialect == "sqlite":
+            # sqlite_sequence only exists if AUTOINCREMENT is used; ignore if missing
+            for tbl in ("leads", "companies", "jobs"):
+                db.execute(text(f"DELETE FROM sqlite_sequence WHERE name='{tbl}'"))
+        elif dialect == "postgresql":
+            for tbl in ("leads", "companies", "jobs"):
+                db.execute(text(f"ALTER SEQUENCE {tbl}_id_seq RESTART WITH 1"))
+        db.commit()
+    except Exception:
+        db.rollback()
     return RedirectResponse(url="/", status_code=303)
