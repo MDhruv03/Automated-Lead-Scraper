@@ -23,14 +23,10 @@ uv run python worker.py
 
 ## What It Does
 
-1. What it does
-2. Discover companies
-3. Crawl company websites
-4. Extract emails and phone numbers
-5. Validate and filter results
-6. Export leads to Excel
-
-
-```
+1. Discover companies
+2. Crawl company websites
+3. Extract emails and phone numbers
+4. Validate and filter results
+5. Export leads to Excel
+___
 On a side note, I have implemented the crawler on my local system, so it is less likely to be blocked by search engines because it runs on a residential internet connection. Running it on a cloud server could increase the chances of it being blocked, since datacenter IPs are more easily identified and restricted by search engines.
-```
