@@ -4,9 +4,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
-# System deps for lxml
+# System deps for lxml + psycopg2
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libxml2-dev libxslt1-dev && \
+    gcc libxml2-dev libxslt1-dev libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml uv.lock ./
