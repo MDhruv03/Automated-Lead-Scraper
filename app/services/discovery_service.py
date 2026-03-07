@@ -1,4 +1,4 @@
-"""Discovery service – finds businesses via DuckDuckGo HTML search."""
+"""Discovery service – finds businesses via multiple search engines with fallback."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from typing import List
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus, urlparse, unquote
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +23,8 @@ _HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
 }
 
 
@@ -67,17 +69,90 @@ def _search_duckduckgo(query: str, max_results: int) -> List[dict]:
         if not href or not title:
             continue
 
-        # DuckDuckGo wraps links via redirect – try to extract real URL
         real_url_match = re.search(r"uddg=([^&]+)", href)
         if real_url_match:
-            from urllib.parse import unquote
             href = unquote(real_url_match.group(1))
 
         results.append({"title": title, "url": href})
         if len(results) >= max_results:
             break
 
+    logger.info("DuckDuckGo returned %d results for: %s", len(results), query)
     return results
+
+
+def _search_google(query: str, max_results: int) -> List[dict]:
+    """Scrape Google HTML search results as a fallback."""
+    results: list[dict] = []
+    encoded = quote_plus(query)
+    url = f"https://www.google.com/search?q={encoded}&num={max_results}"
+
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Google request failed: %s", exc)
+        return results
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    for a_tag in soup.select("a[href]"):
+        href = a_tag.get("href", "")
+        # Google wraps links in /url?q=...&sa=...
+        match = re.search(r"/url\?q=(https?://[^&]+)", href)
+        if not match:
+            continue
+        link = unquote(match.group(1))
+        parsed = urlparse(link)
+        if parsed.netloc and "google" not in parsed.netloc:
+            title = a_tag.get_text(strip=True) or parsed.netloc
+            results.append({"title": title, "url": link})
+            if len(results) >= max_results:
+                break
+
+    logger.info("Google returned %d results for: %s", len(results), query)
+    return results
+
+
+def _search_bing(query: str, max_results: int) -> List[dict]:
+    """Scrape Bing HTML search results as a fallback."""
+    results: list[dict] = []
+    encoded = quote_plus(query)
+    url = f"https://www.bing.com/search?q={encoded}&count={max_results}"
+
+    try:
+        resp = requests.get(url, headers=_HEADERS, timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Bing request failed: %s", exc)
+        return results
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    for li in soup.select("li.b_algo"):
+        a_tag = li.select_one("h2 a")
+        if not a_tag:
+            continue
+        href = a_tag.get("href", "")
+        title = a_tag.get_text(strip=True)
+        if href and title and href.startswith("http"):
+            results.append({"title": title, "url": href})
+            if len(results) >= max_results:
+                break
+
+    logger.info("Bing returned %d results for: %s", len(results), query)
+    return results
+
+
+def _search_with_fallback(query: str, max_results: int) -> List[dict]:
+    """Try DuckDuckGo, then Google, then Bing until we get results."""
+    for engine_fn in [_search_duckduckgo, _search_google, _search_bing]:
+        results = engine_fn(query, max_results)
+        if results:
+            return results
+        time.sleep(CRAWL_DELAY)
+    logger.warning("All search engines returned 0 results for: %s", query)
+    return []
 
 
 def discover_companies(
@@ -100,7 +175,7 @@ def discover_companies(
     for q in queries:
         if len(companies) >= max_results:
             break
-        raw_results = _search_duckduckgo(q, max_results * 2)
+        raw_results = _search_with_fallback(q, max_results * 2)
         time.sleep(CRAWL_DELAY)
 
         for item in raw_results:

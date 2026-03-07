@@ -81,12 +81,12 @@
       </div>
       <div class="flex justify-between">
         <dt class="text-brand-500 dark:text-brand-400">Started</dt>
-        <dd class="font-medium dark:text-brand-200">{{ job.created_at.strftime('%b %d, %Y %H:%M') if job.created_at else '—' }}</dd>
+        <dd class="font-medium dark:text-brand-200">{{ job.created_at|ist('%b %d, %Y %H:%M') if job.created_at else '—' }}</dd>
       </div>
       {% if job.completed_at %}
       <div class="flex justify-between">
         <dt class="text-brand-500 dark:text-brand-400">Completed</dt>
-        <dd class="font-medium dark:text-brand-200">{{ job.completed_at.strftime('%b %d, %Y %H:%M') }}</dd>
+        <dd class="font-medium dark:text-brand-200">{{ job.completed_at|ist('%b %d, %Y %H:%M') }}</dd>
       </div>
       <div class="flex justify-between">
         <dt class="text-brand-500 dark:text-brand-400">Duration</dt>

@@ -79,7 +79,7 @@
       <a href="/jobs/{{ job.id }}" class="flex items-center justify-between rounded-xl border border-brand-100/50 dark:border-white/[0.04] px-4 py-3 transition hover:bg-brand-50 dark:hover:bg-white/[0.02]">
         <div>
           <p class="text-sm font-medium dark:text-brand-200">{{ job.query }} · {{ job.location }}</p>
-          <p class="text-xs text-brand-400">{{ job.created_at.strftime('%b %d, %H:%M') if job.created_at else '' }}
+          <p class="text-xs text-brand-400">{{ job.created_at|ist('%b %d, %H:%M') }}
             {% if job.duration_seconds %} · {{ job.duration_seconds }}s{% endif %}
           </p>
         </div>

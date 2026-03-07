@@ -1,6 +1,7 @@
 """LeadPulse – FastAPI application entry point."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -39,6 +40,21 @@ _BASE = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(_BASE / "static")), name="static")
 templates = Jinja2Templates(directory=str(_BASE / "templates"))
 app.state.templates = templates  # shared via request.app.state
+
+# ── IST timezone filter ──────────────────────────────────────────────────────
+_IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def _to_ist(dt: datetime, fmt: str = "%b %d, %Y %H:%M") -> str:
+    """Convert a datetime to IST and format it."""
+    if dt is None:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(_IST).strftime(fmt)
+
+
+templates.env.filters["ist"] = _to_ist
 
 # ── Register routers ─────────────────────────────────────────────────────────
 app.include_router(dashboard.router)
