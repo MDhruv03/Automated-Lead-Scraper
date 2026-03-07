@@ -25,10 +25,28 @@ async def leads_page(
     db: Session = Depends(get_db),
     industry: str | None = Query(None),
     city: str | None = Query(None),
-    min_score: float | None = Query(None),
-    job_id: int | None = Query(None),
+    min_score: str | None = Query(None),
+    job_id: str | None = Query(None),
     page: int = Query(1, ge=1),
 ):
+    # Normalise empty strings from pagination URLs to None
+    industry = industry or None
+    city = city or None
+    _min_score: float | None = None
+    _job_id: int | None = None
+    try:
+        if min_score:
+            _min_score = float(min_score)
+    except (ValueError, TypeError):
+        pass
+    try:
+        if job_id:
+            _job_id = int(job_id)
+    except (ValueError, TypeError):
+        pass
+    min_score = _min_score  # type: ignore[assignment]
+    job_id = _job_id  # type: ignore[assignment]
+
     query = db.query(Lead).join(Company).options(joinedload(Lead.company))
 
     if industry:

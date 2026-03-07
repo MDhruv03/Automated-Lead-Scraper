@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Leads · LeadPulse{% endblock %}
 
+{# Build clean query string preserving only non-empty filters #}
+{% set qs_parts = [] %}
+{% if filter_industry %}{% set _ = qs_parts.append("industry=" ~ filter_industry) %}{% endif %}
+{% if filter_city %}{% set _ = qs_parts.append("city=" ~ filter_city) %}{% endif %}
+{% if filter_min_score is not none and filter_min_score != "" %}{% set _ = qs_parts.append("min_score=" ~ filter_min_score) %}{% endif %}
+{% if filter_job_id is not none and filter_job_id != "" %}{% set _ = qs_parts.append("job_id=" ~ filter_job_id) %}{% endif %}
+{% set qs = qs_parts | join("&") %}
+
 {% block content %}
 <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
   <div>
@@ -22,7 +30,7 @@
     </a>
     <a href="/export" class="inline-flex items-center gap-1.5 rounded-full bg-brand-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
-      Export Excel
+      Export
     </a>
   </div>
 </div>
@@ -63,127 +71,114 @@
   <button type="submit" class="rounded-full bg-brand-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">Filter</button>
 </form>
 
-<!-- Table -->
-<div class="overflow-x-auto card">
-  <table class="w-full text-sm">
-    <thead>
-      <tr class="border-b border-brand-100 dark:border-brand-800 text-left text-xs uppercase tracking-wider text-brand-400">
-        <th class="px-4 py-3">Company</th>
-        <th class="px-4 py-3">Email</th>
-        <th class="px-4 py-3">Role</th>
-        <th class="px-4 py-3">Phone</th>
-        <th class="px-4 py-3">Tech Stack</th>
-        <th class="px-4 py-3 text-center">Valid</th>
-        <th class="px-4 py-3 text-right">Score</th>
-        <th class="px-4 py-3 text-center w-12"></th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-brand-50 dark:divide-brand-800">
-      {% for lead in leads %}
-      <tr class="transition hover:bg-brand-50/60 dark:hover:bg-brand-800/40 group">
-        <td class="whitespace-nowrap px-4 py-3 font-medium dark:text-brand-200">
-          <div class="flex items-center gap-2">
-            {% if lead.company and lead.company.domain %}
-            <img src="https://www.google.com/s2/favicons?domain={{ lead.company.domain }}&sz=32" alt="" class="h-4 w-4 rounded" loading="lazy" onerror="this.style.display='none'"/>
-            {% endif %}
-            {% if lead.company and lead.company.website %}
-            <a href="{{ lead.company.website }}" target="_blank" rel="noopener" class="underline decoration-brand-300 dark:decoration-brand-700 hover:text-accent-500 transition">{{ lead.company.name }}</a>
-            {% else %}
-            {{ lead.company.name if lead.company else '—' }}
-            {% endif %}
-          </div>
-        </td>
-        <td class="px-4 py-3 text-brand-600 dark:text-brand-400">{{ lead.email or '—' }}</td>
-        <td class="px-4 py-3">
-          {% if lead.role %}
-          <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium
-            {% if lead.role == 'Executive' %}bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400
-            {% elif lead.role == 'Sales' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
-            {% elif lead.role == 'Technical' %}bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400
-            {% elif lead.role == 'Marketing' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
-            {% elif lead.role == 'HR' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
-            {% elif lead.role == 'Support' %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400
-            {% elif lead.role == 'Finance' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
-            {% else %}bg-brand-100 dark:bg-brand-800 text-brand-600 dark:text-brand-400{% endif %}">
-            {{ lead.role }}
-          </span>
-          {% else %}<span class="text-brand-300 dark:text-brand-600">—</span>{% endif %}
-        </td>
-        <td class="px-4 py-3 text-brand-600 dark:text-brand-400">{{ lead.phone or '—' }}</td>
-        <td class="px-4 py-3">
-          {% if lead.company and lead.company.tech_list %}
-          <div class="flex flex-wrap gap-1 max-w-[200px]">
-            {% for tech in lead.company.tech_list[:3] %}
-            <span class="inline-flex rounded bg-brand-100 dark:bg-brand-800 px-1.5 py-0.5 text-[10px] font-medium text-brand-600 dark:text-brand-400">{{ tech }}</span>
-            {% endfor %}
-            {% if lead.company.tech_list | length > 3 %}
-            <span class="inline-flex rounded bg-brand-100 dark:bg-brand-800 px-1.5 py-0.5 text-[10px] font-medium text-brand-500" title="{{ lead.company.tech_list[3:] | join(', ') }}">+{{ lead.company.tech_list | length - 3 }}</span>
-            {% endif %}
-          </div>
-          {% else %}<span class="text-brand-300 dark:text-brand-600">—</span>{% endif %}
-        </td>
-        <td class="px-4 py-3 text-center">
-          {% if lead.email_valid %}
-          <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> MX
-          </span>
-          {% elif lead.email %}
-          <span class="inline-flex items-center gap-1 rounded-full bg-red-50 dark:bg-red-900/20 px-2 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
-            <span class="h-1.5 w-1.5 rounded-full bg-red-400"></span> Fail
-          </span>
-          {% else %}
-          <span class="text-brand-300 dark:text-brand-600">—</span>
-          {% endif %}
-        </td>
-        <td class="px-4 py-3 text-right">
-          <div class="relative flex items-center justify-end gap-2">
-            <div class="h-1.5 w-14 overflow-hidden rounded-full bg-brand-100 dark:bg-brand-800">
-              <div class="score-bar h-full rounded-full
-                {% if lead.lead_score >= 70 %}bg-emerald-500
-                {% elif lead.lead_score >= 40 %}bg-amber-500
-                {% else %}bg-red-400{% endif %}"
-                style="width:{{ lead.lead_score }}%"></div>
-            </div>
-            <span class="tabular-nums font-semibold cursor-help" title="{% if lead.score_factors %}{% for f in lead.score_factors %}{{ f.label }}: {{ f.earned }}/{{ f.max }}&#10;{% endfor %}{% endif %}">{{ lead.lead_score | int }}</span>
-          </div>
-        </td>
-        <td class="px-4 py-3 text-center">
-          <form method="POST" action="/leads/{{ lead.id }}/delete" onsubmit="return confirm('Delete this lead?')" class="inline">
-            <button type="submit" class="rounded-full p-1.5 text-brand-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition" title="Delete lead">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
-            </button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-      {% if not leads %}
-      <tr>
-        <td colspan="8" class="px-4 py-10 text-center text-brand-400 italic">No leads found. <a href="/search" class="underline text-brand-600 dark:text-zinc-300">Start a search</a> to discover leads.</td>
-      </tr>
+<!-- Lead Cards -->
+<div class="space-y-3">
+  {% for lead in leads %}
+  <div class="card px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 group transition hover:shadow-md">
+    <!-- Company + favicon -->
+    <div class="flex items-center gap-3 sm:w-56 min-w-0">
+      {% if lead.company and lead.company.domain %}
+      <img src="https://www.google.com/s2/favicons?domain={{ lead.company.domain }}&sz=32" alt="" class="h-5 w-5 rounded shrink-0" loading="lazy" onerror="this.style.display='none'"/>
+      {% else %}
+      <div class="h-5 w-5 rounded bg-brand-100 dark:bg-brand-800 shrink-0"></div>
       {% endif %}
-    </tbody>
-  </table>
+      <div class="min-w-0">
+        {% if lead.company and lead.company.website %}
+        <a href="{{ lead.company.website }}" target="_blank" rel="noopener" class="block text-sm font-semibold dark:text-white truncate hover:text-accent-500 transition">{{ lead.company.name }}</a>
+        {% else %}
+        <span class="block text-sm font-semibold dark:text-white truncate">{{ lead.company.name if lead.company else '—' }}</span>
+        {% endif %}
+        {% if lead.company and lead.company.industry %}
+        <span class="text-xs text-brand-400 truncate block">{{ lead.company.industry }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Contact info -->
+    <div class="flex-1 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm min-w-0">
+      <!-- Email -->
+      {% if lead.email %}
+      <div class="flex items-center gap-1.5 min-w-0">
+        <svg class="h-3.5 w-3.5 text-brand-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+        <span class="text-brand-700 dark:text-brand-300 truncate">{{ lead.email }}</span>
+        {% if lead.email_valid %}
+        <span class="inline-flex items-center rounded-full bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">MX ✓</span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Phone -->
+      {% if lead.phone %}
+      <div class="flex items-center gap-1.5">
+        <svg class="h-3.5 w-3.5 text-brand-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z"/></svg>
+        <span class="text-brand-700 dark:text-brand-300">{{ lead.phone }}</span>
+      </div>
+      {% endif %}
+
+      <!-- Role -->
+      {% if lead.role %}
+      <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium
+        {% if lead.role == 'Executive' %}bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400
+        {% elif lead.role == 'Sales' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+        {% elif lead.role == 'Technical' %}bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400
+        {% elif lead.role == 'Marketing' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
+        {% elif lead.role == 'HR' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
+        {% elif lead.role == 'Support' %}bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400
+        {% elif lead.role == 'Finance' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+        {% else %}bg-brand-100 dark:bg-brand-800 text-brand-600 dark:text-brand-400{% endif %}">
+        {{ lead.role }}
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Score + delete -->
+    <div class="flex items-center gap-3 sm:w-32 justify-end shrink-0">
+      <div class="flex items-center gap-2" title="{% if lead.score_factors %}{% for f in lead.score_factors %}{{ f.label }}: {{ f.earned }}/{{ f.max }}&#10;{% endfor %}{% endif %}">
+        <div class="h-1.5 w-12 overflow-hidden rounded-full bg-brand-100 dark:bg-brand-800">
+          <div class="score-bar h-full rounded-full
+            {% if lead.lead_score >= 70 %}bg-emerald-500
+            {% elif lead.lead_score >= 40 %}bg-amber-500
+            {% else %}bg-red-400{% endif %}"
+            style="width:{{ lead.lead_score }}%"></div>
+        </div>
+        <span class="text-sm tabular-nums font-bold
+          {% if lead.lead_score >= 70 %}text-emerald-600 dark:text-emerald-400
+          {% elif lead.lead_score >= 40 %}text-amber-600 dark:text-amber-400
+          {% else %}text-red-500 dark:text-red-400{% endif %}">{{ lead.lead_score | int }}</span>
+      </div>
+      <form method="POST" action="/leads/{{ lead.id }}/delete" onsubmit="return confirm('Delete this lead?')" class="inline">
+        <button type="submit" class="rounded-full p-1.5 text-brand-300 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition" title="Delete">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if not leads %}
+  <div class="card px-4 py-10 text-center text-brand-400 italic">No leads found. <a href="/search" class="underline text-brand-600 dark:text-zinc-300">Start a search</a> to discover leads.</div>
+  {% endif %}
 </div>
 
 <!-- Pagination -->
 {% if total_pages > 1 %}
 <nav class="mt-6 flex items-center justify-center gap-1">
   {% if page > 1 %}
-  <a href="?page={{ page - 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}&job_id={{ filter_job_id }}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">&laquo; Prev</a>
+  <a href="?page={{ page - 1 }}{% if qs %}&{{ qs }}{% endif %}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">&laquo; Prev</a>
   {% endif %}
 
   {% for p in range(1, total_pages + 1) %}
     {% if p == page %}
     <span class="rounded-full bg-brand-900 px-3 py-1.5 text-sm font-semibold text-white dark:bg-white dark:text-black">{{ p }}</span>
     {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
-    <a href="?page={{ p }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}&job_id={{ filter_job_id }}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">{{ p }}</a>
+    <a href="?page={{ p }}{% if qs %}&{{ qs }}{% endif %}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">{{ p }}</a>
     {% elif p == 4 or p == total_pages - 3 %}
     <span class="px-1 text-brand-400">…</span>
     {% endif %}
   {% endfor %}
 
   {% if page < total_pages %}
-  <a href="?page={{ page + 1 }}&industry={{ filter_industry }}&city={{ filter_city }}&min_score={{ filter_min_score }}&job_id={{ filter_job_id }}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">Next &raquo;</a>
+  <a href="?page={{ page + 1 }}{% if qs %}&{{ qs }}{% endif %}" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-3 py-1.5 text-sm text-brand-600 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">Next &raquo;</a>
   {% endif %}
 </nav>
 {% endif %}
