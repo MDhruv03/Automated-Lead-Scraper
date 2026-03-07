@@ -69,31 +69,51 @@ signal.signal(signal.SIGTERM, _handle_signal)
 # ── Helpers: talk to the server ───────────────────────────────────────────────
 
 class ServerClient:
-    """Thin wrapper around the deployed LeadPulse worker API."""
+    """Thin wrapper around the deployed LeadPulse worker API.
 
-    def __init__(self, base_url: str, secret: str, timeout: int = 30):
-        self.base = base_url.rstrip("/")
+    Accepts one or more server base URLs. Every request is tried against each
+    URL in order; the first successful one wins.  This lets you specify both
+    the ``*.onrender.com`` URL and a custom domain so the worker keeps working
+    even if one endpoint is temporarily unreachable.
+    """
+
+    def __init__(self, base_urls: list[str], secret: str, timeout: int = 30):
+        self.bases = [u.rstrip("/") for u in base_urls]
         self.headers = {"Authorization": f"Bearer {secret}"}
         self.timeout = timeout
 
-    def _url(self, path: str) -> str:
-        return f"{self.base}{path}"
+    def _request(self, method: str, path: str, **kwargs):
+        """Try the request against each base URL; return the first success."""
+        kwargs.setdefault("headers", self.headers)
+        kwargs.setdefault("timeout", self.timeout)
+        last_exc: Exception | None = None
+        for base in self.bases:
+            url = f"{base}{path}"
+            try:
+                resp = getattr(http_client, method)(url, **kwargs)
+                if resp.status_code < 500:
+                    return resp
+            except Exception as exc:
+                last_exc = exc
+                logger.debug("Request to %s failed: %s", url, exc)
+        # All bases failed
+        if last_exc:
+            raise last_exc
+        return None
 
     # -- heartbeat --
     def heartbeat(self) -> bool:
         try:
-            r = http_client.post(self._url("/api/worker/heartbeat"),
-                                 headers=self.headers, timeout=self.timeout)
-            return r.status_code == 200
+            r = self._request("post", "/api/worker/heartbeat")
+            return r is not None and r.status_code == 200
         except Exception:
             return False
 
     # -- pending jobs --
     def get_pending_jobs(self) -> list[dict]:
         try:
-            r = http_client.get(self._url("/api/worker/jobs"),
-                                headers=self.headers, timeout=self.timeout)
-            if r.status_code == 200:
+            r = self._request("get", "/api/worker/jobs")
+            if r and r.status_code == 200:
                 return r.json()
         except Exception as exc:
             logger.warning("Failed to fetch pending jobs: %s", exc)
@@ -102,20 +122,18 @@ class ServerClient:
     # -- claim --
     def claim(self, job_id: int) -> bool:
         try:
-            r = http_client.post(self._url(f"/api/worker/claim/{job_id}"),
-                                 headers=self.headers, timeout=self.timeout)
-            return r.status_code == 200
+            r = self._request("post", f"/api/worker/claim/{job_id}")
+            return r is not None and r.status_code == 200
         except Exception:
             return False
 
     # -- progress --
     def progress(self, job_id: int, stage: str, total: int, processed: int):
         try:
-            http_client.post(
-                self._url(f"/api/worker/job/{job_id}/progress"),
-                headers=self.headers,
+            self._request(
+                "post",
+                f"/api/worker/job/{job_id}/progress",
                 json={"current_stage": stage, "total_companies": total, "processed_companies": processed},
-                timeout=self.timeout,
             )
         except Exception:
             pass  # best-effort
@@ -123,13 +141,13 @@ class ServerClient:
     # -- results --
     def submit_results(self, job_id: int, companies: list[dict], duration: float) -> bool:
         try:
-            r = http_client.post(
-                self._url(f"/api/worker/job/{job_id}/results"),
-                headers=self.headers,
+            r = self._request(
+                "post",
+                f"/api/worker/job/{job_id}/results",
                 json={"companies": companies, "duration_seconds": round(duration, 1)},
                 timeout=60,
             )
-            return r.status_code == 200
+            return r is not None and r.status_code == 200
         except Exception as exc:
             logger.error("Failed to submit results for job %d: %s", job_id, exc)
             return False
@@ -137,8 +155,7 @@ class ServerClient:
     # -- fail --
     def fail(self, job_id: int):
         try:
-            http_client.post(self._url(f"/api/worker/job/{job_id}/fail"),
-                             headers=self.headers, timeout=self.timeout)
+            self._request("post", f"/api/worker/job/{job_id}/fail")
         except Exception:
             pass
 
@@ -370,8 +387,12 @@ def main():
     parser = argparse.ArgumentParser(description="LeadPulse local crawler worker")
     parser.add_argument(
         "--server",
-        default=os.getenv("LEADPULSE_SERVER", "http://localhost:8000"),
-        help="Base URL of the deployed LeadPulse server",
+        default=os.getenv(
+            "LEADPULSE_SERVER",
+            "https://leadscraper-btn9.onrender.com,https://lead-scraper.dhruvm.dev",
+        ),
+        help="Comma-separated base URL(s) of the deployed LeadPulse server "
+             "(default: Render + custom domain)",
     )
     parser.add_argument(
         "--secret",
@@ -386,12 +407,17 @@ def main():
     )
     args = parser.parse_args()
 
-    client = ServerClient(args.server, args.secret)
+    server_urls = [u.strip() for u in args.server.split(",") if u.strip()]
+    if not server_urls:
+        logger.error("No server URL(s) provided")
+        sys.exit(1)
+
+    client = ServerClient(server_urls, args.secret)
 
     # Verify connectivity
-    logger.info("Connecting to %s …", args.server)
+    logger.info("Connecting to %s …", ", ".join(server_urls))
     if not client.heartbeat():
-        logger.error("Cannot reach server at %s – check URL and secret", args.server)
+        logger.error("Cannot reach any server – check URLs and secret")
         sys.exit(1)
     logger.info("Connected. Polling every %ds. Press Ctrl+C to stop.", args.interval)
 

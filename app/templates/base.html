@@ -71,6 +71,11 @@
         </svg>
         LeadPulse
       </a>
+      <!-- Crawler status dot -->
+      <div id="nav-crawler" class="flex items-center gap-1.5 pl-2 cursor-default" title="Crawler offline">
+        <span id="nav-crawler-dot" class="inline-block h-2 w-2 rounded-full bg-amber-400"></span>
+        <span id="nav-crawler-label" class="text-[11px] font-medium text-amber-500 dark:text-amber-400 hidden sm:inline">Offline</span>
+      </div>
       <div class="flex items-center gap-0.5">
         <a href="/" class="rounded-full px-3 py-1 text-sm text-brand-500 transition-colors hover:text-brand-900 dark:text-zinc-400 dark:hover:text-white">Dashboard</a>
         <a href="/search" class="rounded-full px-3 py-1 text-sm text-brand-500 transition-colors hover:text-brand-900 dark:text-zinc-400 dark:hover:text-white">Search</a>
@@ -104,6 +109,38 @@
       localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
     });
   </script>
+
+  <!-- Global crawler status polling -->
+  <script>
+  (function(){
+    const dot=document.getElementById('nav-crawler-dot');
+    const label=document.getElementById('nav-crawler-label');
+    const wrap=document.getElementById('nav-crawler');
+    let prev=null;
+    async function poll(){
+      try{
+        const r=await fetch('/api/worker/status');
+        const d=await r.json();
+        if(d.online===prev) return;
+        prev=d.online;
+        if(d.online){
+          dot.className='inline-block h-2 w-2 rounded-full bg-emerald-500 pulse-dot';
+          label.textContent='Online';
+          label.className='text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hidden sm:inline';
+          wrap.title='Crawler online';
+        } else {
+          dot.className='inline-block h-2 w-2 rounded-full bg-amber-400';
+          label.textContent='Offline';
+          label.className='text-[11px] font-medium text-amber-500 dark:text-amber-400 hidden sm:inline';
+          wrap.title='Crawler offline';
+        }
+      }catch{}
+    }
+    poll();
+    setInterval(poll,15000);
+  })();
+  </script>
+
   {% block scripts %}{% endblock %}
 </body>
 </html>
