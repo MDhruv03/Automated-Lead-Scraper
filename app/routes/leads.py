@@ -130,7 +130,7 @@ async def api_leads(
 # ── Delete single lead ───────────────────────────────────────────────────────
 @router.post("/leads/{lead_id}/delete")
 async def delete_lead(lead_id: int, db: Session = Depends(get_db)):
-    lead = db.query(Lead).get(lead_id)
+    lead = db.get(Lead, lead_id)
     if lead:
         db.delete(lead)
         db.commit()

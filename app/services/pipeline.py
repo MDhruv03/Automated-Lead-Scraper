@@ -62,7 +62,7 @@ def run_pipeline(job_id: int) -> None:
     """
     db: Session = SessionLocal()
     try:
-        job = db.query(Job).get(job_id)
+        job = db.get(Job, job_id)
         if not job:
             logger.error("Job %s not found", job_id)
             return
@@ -307,7 +307,7 @@ def run_pipeline(job_id: int) -> None:
     except Exception:
         logger.exception("Pipeline failed for job %s", job_id)
         try:
-            job = db.query(Job).get(job_id)
+            job = db.get(Job, job_id)
             if job:
                 job.status = "failed"
                 db.commit()

@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Request, Depends, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -75,7 +76,7 @@ async def api_start_search(
 # ── Job status ───────────────────────────────────────────────────────────────
 @router.get("/jobs/{job_id}")
 async def job_status(job_id: int, request: Request, db: Session = Depends(get_db)):
-    job = db.query(Job).get(job_id)
+    job = db.get(Job, job_id)
     if not job:
         return request.app.state.templates.TemplateResponse(
             "404.html", {"request": request}, status_code=404
@@ -87,7 +88,7 @@ async def job_status(job_id: int, request: Request, db: Session = Depends(get_db
 
 @router.get("/api/jobs/{job_id}")
 async def api_job_status(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(Job).get(job_id)
+    job = db.get(Job, job_id)
     if not job:
         return {"error": "Job not found"}
     return {
@@ -104,7 +105,7 @@ async def api_job_status(job_id: int, db: Session = Depends(get_db)):
 # ── Delete single job + its companies & leads ────────────────────────────────
 @router.post("/jobs/{job_id}/delete")
 async def delete_job(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(Job).get(job_id)
+    job = db.get(Job, job_id)
     if job:
         companies = db.query(Company).filter(Company.job_id == job_id).all()
         for company in companies:
@@ -120,5 +121,14 @@ async def delete_all_jobs(db: Session = Depends(get_db)):
     db.query(Lead).delete()
     db.query(Company).delete()
     db.query(Job).delete()
+    db.commit()
+    # Reset auto-increment so next IDs start from 1
+    dialect = db.bind.dialect.name
+    if dialect == "sqlite":
+        for tbl in ("leads", "companies", "jobs"):
+            db.execute(text(f"DELETE FROM sqlite_sequence WHERE name='{tbl}'"))
+    elif dialect == "postgresql":
+        for tbl in ("leads", "companies", "jobs"):
+            db.execute(text(f"ALTER SEQUENCE {tbl}_id_seq RESTART WITH 1"))
     db.commit()
     return RedirectResponse(url="/", status_code=303)
