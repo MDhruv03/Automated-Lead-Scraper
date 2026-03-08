@@ -164,6 +164,16 @@ class ServerClient:
         except Exception:
             pass
 
+    # -- check if job was cancelled --
+    def is_cancelled(self, job_id: int) -> bool:
+        try:
+            r = self._request("get", f"/api/worker/job/{job_id}/status")
+            if r and r.status_code == 200:
+                return r.json().get("status") == "cancelled"
+        except Exception:
+            pass
+        return False
+
 
 # ── Pipeline (runs locally, collects results in memory) ──────────────────────
 
@@ -212,6 +222,11 @@ def run_local_pipeline(
             if _shutdown.is_set():
                 logger.info("Shutdown requested – stopping pipeline early")
                 break
+
+            # Check if the job was cancelled via the web UI
+            if idx % 3 == 0 and client.is_cancelled(job_id):
+                logger.info("Job %d cancelled by user – stopping pipeline", job_id)
+                return
 
             try:
                 # ── Domain-level dedup (in-job) ───────────────────────────

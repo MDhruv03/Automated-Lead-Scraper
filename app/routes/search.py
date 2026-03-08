@@ -145,6 +145,56 @@ async def api_job_status(job_id: int, db: Session = Depends(get_db)):
     }
 
 
+# ── Cancel a job (pending → cancelled, running → cancelled) ──────────────────
+@router.post("/jobs/{job_id}/cancel")
+async def cancel_job(job_id: int, db: Session = Depends(get_db)):
+    job = db.get(Job, job_id)
+    if not job:
+        return RedirectResponse(url="/", status_code=303)
+    if job.status in ("pending", "running"):
+        job.status = "cancelled"
+        job.current_stage = "cancelled"
+        db.commit()
+    return RedirectResponse(url=f"/jobs/{job_id}", status_code=303)
+
+
+@router.post("/api/jobs/{job_id}/cancel")
+async def api_cancel_job(job_id: int, db: Session = Depends(get_db)):
+    job = db.get(Job, job_id)
+    if not job:
+        return {"error": "Job not found"}
+    if job.status in ("pending", "running"):
+        job.status = "cancelled"
+        job.current_stage = "cancelled"
+        db.commit()
+        return {"ok": True, "status": "cancelled"}
+    return {"ok": False, "status": job.status, "message": "Job is not cancellable"}
+
+
+# ── Queue: list pending + running jobs ────────────────────────────────────────
+@router.get("/api/jobs/queue")
+async def api_job_queue(db: Session = Depends(get_db)):
+    jobs = (
+        db.query(Job)
+        .filter(Job.status.in_(["pending", "running"]))
+        .order_by(Job.created_at.asc())
+        .all()
+    )
+    return [
+        {
+            "id": j.id,
+            "query": j.query,
+            "location": j.location,
+            "status": j.status,
+            "current_stage": j.current_stage,
+            "total_companies": j.total_companies,
+            "processed_companies": j.processed_companies,
+            "created_at": j.created_at.isoformat() if j.created_at else None,
+        }
+        for j in jobs
+    ]
+
+
 # ── Delete single job + its companies & leads ────────────────────────────────
 @router.post("/jobs/{job_id}/delete")
 async def delete_job(job_id: int, db: Session = Depends(get_db)):

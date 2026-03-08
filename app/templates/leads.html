@@ -40,10 +40,10 @@
 </div>
 
 <!-- Filters -->
-<form method="GET" action="/leads" class="mb-6 flex flex-wrap items-end gap-3 card p-4">
+<form id="filter-form" method="GET" action="/leads" class="mb-6 flex flex-wrap items-end gap-3 card p-4">
   <div class="flex-1 min-w-[140px]">
     <label class="block text-xs font-semibold uppercase tracking-wider text-brand-400 mb-1">Search</label>
-    <select name="job_id" class="w-full rounded-full border border-brand-200/60 dark:border-white/10 bg-white/50 dark:bg-white/5 px-4 py-2 text-sm dark:text-brand-200 outline-none focus:border-brand-400 dark:focus:border-white/25">
+    <select name="job_id" onchange="document.getElementById('filter-form').submit()" class="w-full rounded-full border border-brand-200/60 dark:border-white/10 bg-white/50 dark:bg-white/5 px-4 py-2 text-sm dark:text-brand-200 outline-none focus:border-brand-400 dark:focus:border-white/25">
       <option value="">All Searches</option>
       {% for j in jobs %}
       <option value="{{ j.id }}" {% if j.id|string == filter_job_id|string %}selected{% endif %}>{{ j.query }} · {{ j.location }}</option>
@@ -73,7 +73,24 @@
     <input name="min_score" type="number" min="0" max="100" value="{{ filter_min_score }}" placeholder="0" class="w-full rounded-full border border-brand-200/60 dark:border-white/10 bg-white/50 dark:bg-white/5 px-4 py-2 text-sm dark:text-brand-200 outline-none focus:border-brand-400 dark:focus:border-white/25"/>
   </div>
   <button type="submit" class="rounded-full bg-brand-900 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">Filter</button>
+  {% if filter_job_id or filter_industry or filter_city or (filter_min_score is not none and filter_min_score != "") %}
+  <a href="/leads" class="rounded-full border border-brand-200/50 dark:border-white/[0.08] px-4 py-2 text-sm font-medium text-brand-500 dark:text-brand-300 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">Clear</a>
+  {% endif %}
 </form>
+
+{% if filter_job_id %}
+{% set active_job = jobs | selectattr('id', 'equalto', filter_job_id|int) | first %}
+{% if active_job %}
+<div class="mb-6 flex items-center gap-3 rounded-xl border border-accent-200/50 dark:border-accent-500/10 bg-accent-50/50 dark:bg-accent-900/10 px-4 py-3">
+  <svg class="h-4 w-4 text-accent-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z"/></svg>
+  <p class="text-sm font-medium text-accent-700 dark:text-accent-400">Showing leads from: <strong>{{ active_job.query }} · {{ active_job.location }}</strong></p>
+  <a href="/leads" class="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-accent-600 dark:text-accent-400 hover:bg-accent-100 dark:hover:bg-accent-900/20 transition">
+    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    Show all
+  </a>
+</div>
+{% endif %}
+{% endif %}
 
 <!-- Lead Cards -->
 <div class="space-y-3">

@@ -225,3 +225,16 @@ async def fail_job(
     job.status = "failed"
     db.commit()
     return {"ok": True}
+
+
+# ── Job status check (worker polls this to detect cancellation) ───────────────
+@router.get("/job/{job_id}/status")
+async def job_status_check(
+    job_id: int,
+    db: Session = Depends(get_db),
+    _: None = Depends(_verify_secret),
+):
+    job = db.get(Job, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"status": job.status}

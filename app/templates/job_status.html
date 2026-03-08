@@ -16,10 +16,13 @@
         {% if job.status == 'completed' %}bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400
         {% elif job.status == 'running' %}bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
         {% elif job.status == 'failed' %}bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400
+        {% elif job.status == 'cancelled' %}bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
         {% else %}bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400{% endif %}"
         id="status-badge">
         {% if job.status == 'running' %}<span class="h-1.5 w-1.5 rounded-full bg-amber-500 pulse-dot"></span>{% endif %}
-        {% if job.status == 'pending' %}<span class="h-1.5 w-1.5 rounded-full bg-blue-500 pulse-dot"></span> Queued{% else %}{{ job.status }}{% endif %}
+        {% if job.status == 'pending' %}<span class="h-1.5 w-1.5 rounded-full bg-blue-500 pulse-dot"></span> Queued
+        {% elif job.status == 'cancelled' %}Cancelled
+        {% else %}{{ job.status }}{% endif %}
       </span>
     </div>
 
@@ -107,6 +110,16 @@
 
     <!-- Actions -->
     <div class="mt-8 flex gap-3">
+      {% if job.status in ('pending', 'running') %}
+      <form method="POST" action="/jobs/{{ job.id }}/cancel" onsubmit="return confirm('Cancel this search?')" class="flex-1">
+        <button type="submit" class="w-full rounded-full border border-red-200/50 dark:border-red-500/20 bg-red-50 dark:bg-red-900/10 py-2.5 text-center text-sm font-semibold text-red-600 dark:text-red-400 transition hover:bg-red-100 dark:hover:bg-red-900/20">
+          <span class="inline-flex items-center gap-1.5">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            Cancel Search
+          </span>
+        </button>
+      </form>
+      {% endif %}
       <a href="/leads?job_id={{ job.id }}" class="flex-1 rounded-full bg-brand-900 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-brand-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200">View Leads</a>
       <a href="/search" class="flex-1 rounded-full border border-brand-200/50 dark:border-white/[0.08] py-2.5 text-center text-sm font-medium text-brand-700 dark:text-brand-200 transition hover:bg-brand-100 dark:hover:bg-white/[0.05]">New Search</a>
     </div>
@@ -189,6 +202,15 @@
           stopped = true;
           const pm = document.getElementById('pending-msg');
           if (pm) pm.remove();
+        } else if (data.status === 'cancelled') {
+          badge.className = 'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400';
+          badge.textContent = 'Cancelled';
+          stopped = true;
+          const pm = document.getElementById('pending-msg');
+          if (pm) pm.remove();
+          // Remove cancel button if present
+          const cancelForm = document.querySelector('form[action$="/cancel"]');
+          if (cancelForm) cancelForm.remove();
         } else {
           // pending
           poll();
