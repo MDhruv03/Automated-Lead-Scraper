@@ -15,8 +15,9 @@
   <!-- Base URL -->
   <div class="card px-5 py-3.5 mb-8 flex items-center gap-3">
     <span class="text-[11px] font-semibold text-brand-400 dark:text-zinc-500 uppercase tracking-wider">Base URL</span>
-    <code class="text-sm font-mono text-brand-700 dark:text-zinc-200">http://localhost:8000</code>
+    <code id="base-url" class="text-sm font-mono text-brand-700 dark:text-zinc-200"></code>
   </div>
+  <script>document.getElementById('base-url').textContent = window.location.origin;</script>
 
   <!-- Endpoint Cards -->
   <div class="space-y-4">
@@ -150,16 +151,21 @@
   <div class="mt-8 card p-6">
     <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Quick Start</h2>
     <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
-      <pre class="text-[11px] font-mono whitespace-pre"><code><span class="text-brand-400 dark:text-zinc-600"># Start a search</span>
-<span class="text-cyan-400">curl</span> <span class="text-emerald-400">-X POST</span> http://localhost:8000/api/search \
-  -H "Content-Type: application/json" \
-  -d '{"industry":"Fintech","location":"London"}'
-
-<span class="text-brand-400 dark:text-zinc-600"># Check progress</span>
-<span class="text-cyan-400">curl</span> http://localhost:8000/api/jobs/1
-
-<span class="text-brand-400 dark:text-zinc-600"># Get leads</span>
-<span class="text-cyan-400">curl</span> http://localhost:8000/api/leads?min_score=50</code></pre>
+      <pre id="quick-start-code" class="text-[11px] font-mono whitespace-pre"><code></code></pre>
+      <script>
+      (function(){
+        var h = window.location.origin;
+        var code = document.querySelector('#quick-start-code code');
+        code.innerHTML = '<span class="text-brand-400 dark:text-zinc-600"># Start a search</span>\n'
+          + '<span class="text-cyan-400">curl</span> <span class="text-emerald-400">-X POST</span> ' + h + '/api/search \\\n'
+          + '  -H "Content-Type: application/json" \\\n'
+          + '  -d \'{"industry":"Fintech","location":"London"}\'\n\n'
+          + '<span class="text-brand-400 dark:text-zinc-600"># Check progress</span>\n'
+          + '<span class="text-cyan-400">curl</span> ' + h + '/api/jobs/1\n\n'
+          + '<span class="text-brand-400 dark:text-zinc-600"># Get leads</span>\n'
+          + '<span class="text-cyan-400">curl</span> ' + h + '/api/leads?min_score=50';
+      })();
+      </script>
     </div>
   </div>
 </div>
