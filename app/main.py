@@ -43,6 +43,12 @@ with engine.connect() as conn:
         conn.commit()
         logger.info("Migrated: added extra_emails column to leads table")
 
+    for col in ("max_companies", "max_pages", "min_score"):
+        if col not in cols:
+            conn.execute(text(f"ALTER TABLE jobs ADD COLUMN {col} INTEGER"))
+            conn.commit()
+            logger.info(f"Migrated: added {col} column to jobs table")
+
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title=APP_TITLE,
