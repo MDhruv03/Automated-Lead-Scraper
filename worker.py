@@ -174,6 +174,14 @@ class ServerClient:
             pass
         return False
 
+    # -- disconnect (tell the server we're going offline) --
+    def disconnect(self) -> bool:
+        try:
+            r = self._request("post", "/api/worker/disconnect")
+            return r is not None and r.status_code == 200
+        except Exception:
+            return False
+
 
 # ── Pipeline (runs locally, collects results in memory) ──────────────────────
 
@@ -497,6 +505,9 @@ def main():
         # Wait for next poll (interruptible)
         _shutdown.wait(args.interval)
 
+    # Tell the server we're going offline so it updates status immediately
+    logger.info("Sending disconnect to server …")
+    client.disconnect()
     logger.info("Worker stopped.")
 
 

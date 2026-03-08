@@ -46,6 +46,15 @@ async def heartbeat(_: None = Depends(_verify_secret)):
     return {"ok": True}
 
 
+# ── Disconnect (worker calls this on graceful shutdown) ───────────────────────
+@router.post("/disconnect")
+async def disconnect(_: None = Depends(_verify_secret)):
+    global _last_heartbeat
+    _last_heartbeat = None
+    logger.info("Worker disconnected explicitly.")
+    return {"ok": True}
+
+
 # ── Worker status (public, used by dashboard JS) ─────────────────────────────
 @router.get("/status")
 async def worker_status():
