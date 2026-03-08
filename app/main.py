@@ -1,6 +1,7 @@
 """LeadPulse – FastAPI application entry point."""
 
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -76,6 +77,24 @@ def _to_ist(dt: datetime, fmt: str = "%b %d, %Y %H:%M") -> str:
 
 
 templates.env.filters["ist"] = _to_ist
+
+
+def _clean_phone(value: str | None) -> str | None:
+    """Return None if the stored phone looks like year numbers."""
+    if not value:
+        return None
+    parts = re.findall(r"\d+", value)
+    if not parts:
+        return None
+    if all(len(p) == 4 and 1900 <= int(p) <= 2099 for p in parts):
+        return None
+    total_digits = sum(len(p) for p in parts)
+    if total_digits <= 8 and len(parts[0]) == 4 and 1900 <= int(parts[0]) <= 2099:
+        return None
+    return value
+
+
+templates.env.filters["clean_phone"] = _clean_phone
 
 # ── Register routers ─────────────────────────────────────────────────────────
 app.include_router(dashboard.router)

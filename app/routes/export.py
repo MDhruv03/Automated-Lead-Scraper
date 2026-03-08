@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
@@ -28,6 +29,20 @@ async def export_leads(db: Session = Depends(get_db)):
         .all()
     )
 
+    def _clean_phone(value: str | None) -> str:
+        """Return empty string if the stored phone looks like year numbers."""
+        if not value:
+            return ""
+        parts = re.findall(r"\d+", value)
+        if not parts:
+            return ""
+        if all(len(p) == 4 and 1900 <= int(p) <= 2099 for p in parts):
+            return ""
+        total_digits = sum(len(p) for p in parts)
+        if total_digits <= 8 and len(parts[0]) == 4 and 1900 <= int(parts[0]) <= 2099:
+            return ""
+        return value
+
     rows = []
     for l in leads:
         extra = ""
@@ -47,7 +62,7 @@ async def export_leads(db: Session = Depends(get_db)):
             "Extra Emails": extra,
             "Email Valid": "Yes" if l.email_valid else "No",
             "Contact Role": l.role or "",
-            "Phone": l.phone or "",
+            "Phone": _clean_phone(l.phone),
             "LinkedIn": l.linkedin or "",
             "Address": l.address or "",
             "Industry": l.company.industry if l.company else "",

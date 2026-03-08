@@ -33,11 +33,16 @@ def _looks_like_years(raw: str) -> bool:
     stripped = raw.strip()
     if _ALL_YEARS_RE.match(stripped):
         return True
-    # Check if it's purely N-digit groups that are all plausible years
     parts = re.findall(r"\d+", stripped)
-    if parts and all(
-        len(p) == 4 and 1900 <= int(p) <= 2099 for p in parts
-    ):
+    if not parts:
+        return False
+    # All digit groups are plausible 4-digit years → skip
+    if all(len(p) == 4 and 1900 <= int(p) <= 2099 for p in parts):
+        return True
+    # ≤8 total digits and starts with a year-like number → almost certainly
+    # a year pair or year + short suffix, not a real phone number
+    total_digits = sum(len(p) for p in parts)
+    if total_digits <= 8 and len(parts[0]) == 4 and 1900 <= int(parts[0]) <= 2099:
         return True
     return False
 
