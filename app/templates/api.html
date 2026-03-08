@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}API Reference · LeadPulse{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-3xl">
+  <!-- Header -->
+  <div class="mb-10 text-center">
+    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-brand-200/50 dark:border-white/[0.08] bg-gradient-to-br from-violet-500/10 to-indigo-500/10">
+      <svg class="h-7 w-7 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>
+    </div>
+    <h1 class="text-2xl font-semibold tracking-tight dark:text-white">API Reference</h1>
+    <p class="mt-2 text-sm text-brand-500 dark:text-brand-400 max-w-md mx-auto">Integrate LeadPulse into your workflow with these endpoints.</p>
+  </div>
+
+  <!-- Base URL -->
+  <div class="card px-5 py-3.5 mb-8 flex items-center gap-3">
+    <span class="text-[11px] font-semibold text-brand-400 dark:text-zinc-500 uppercase tracking-wider">Base URL</span>
+    <code class="text-sm font-mono text-brand-700 dark:text-zinc-200">http://localhost:8000</code>
+  </div>
+
+  <!-- Endpoint Cards -->
+  <div class="space-y-4">
+
+    <!-- 1. Start a Search -->
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="rounded-md bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">POST</span>
+        <code class="text-sm font-mono font-semibold text-brand-800 dark:text-zinc-200">/api/search</code>
+      </div>
+      <p class="text-sm text-brand-500 dark:text-zinc-400 mb-5">Start a new lead discovery job. Returns immediately with a job ID you can poll for progress.</p>
+      <div class="grid sm:grid-cols-2 gap-5">
+        <div>
+          <h4 class="text-[11px] font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500 mb-3">Request Body</h4>
+          <div class="space-y-2">
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">industry</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">string, required</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">location</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">string, required</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">max_companies</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">int, 5–100 (default 30)</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">max_pages</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">int, 1–10 (default 5)</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">min_score</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">int, 0–100 (default 40)</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4 class="text-[11px] font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500 mb-3">Response</h4>
+          <div class="rounded-lg bg-brand-50 dark:bg-white/[0.03] border border-brand-100/50 dark:border-white/[0.04] p-3">
+            <pre class="text-xs text-brand-600 dark:text-zinc-300 font-mono whitespace-pre">{ "job_id": 1, "status": "pending" }</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Check Job Status -->
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">GET</span>
+        <code class="text-sm font-mono font-semibold text-brand-800 dark:text-zinc-200">/api/jobs/<span class="text-brand-400 dark:text-zinc-500">{job_id}</span></code>
+      </div>
+      <p class="text-sm text-brand-500 dark:text-zinc-400 mb-5">Poll a running job to check progress. Shows the current pipeline stage and how many companies have been processed.</p>
+      <div>
+        <h4 class="text-[11px] font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500 mb-3">Response</h4>
+        <div class="rounded-lg bg-brand-50 dark:bg-white/[0.03] border border-brand-100/50 dark:border-white/[0.04] p-3">
+          <pre class="text-xs text-brand-600 dark:text-zinc-300 font-mono whitespace-pre">{
+  "id": 1,
+  "status": "running",
+  "current_stage": "crawling",
+  "total_companies": 30,
+  "processed_companies": 12
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Retrieve Leads -->
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">GET</span>
+        <code class="text-sm font-mono font-semibold text-brand-800 dark:text-zinc-200">/api/leads</code>
+      </div>
+      <p class="text-sm text-brand-500 dark:text-zinc-400 mb-5">Retrieve collected leads with optional filtering and pagination.</p>
+      <div class="grid sm:grid-cols-2 gap-5">
+        <div>
+          <h4 class="text-[11px] font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500 mb-3">Query Parameters</h4>
+          <div class="space-y-2">
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">page</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">int (default 1)</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">min_score</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">int, filter by minimum score</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">industry</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">string, filter by industry</span>
+            </div>
+            <div class="flex items-baseline gap-2 text-xs">
+              <code class="font-mono font-medium text-accent-600 dark:text-accent-400">city</code>
+              <span class="text-brand-300 dark:text-zinc-700">·</span>
+              <span class="text-brand-400 dark:text-zinc-500">string, filter by city</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <h4 class="text-[11px] font-semibold uppercase tracking-wider text-brand-400 dark:text-zinc-500 mb-3">Response</h4>
+          <div class="rounded-lg bg-brand-50 dark:bg-white/[0.03] border border-brand-100/50 dark:border-white/[0.04] p-3">
+            <pre class="text-xs text-brand-600 dark:text-zinc-300 font-mono whitespace-pre">{
+  "total": 25,
+  "page": 1,
+  "leads": [{ ... }]
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Export -->
+    <div class="card p-6">
+      <div class="flex items-center gap-3 mb-3">
+        <span class="rounded-md bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">GET</span>
+        <code class="text-sm font-mono font-semibold text-brand-800 dark:text-zinc-200">/export</code>
+      </div>
+      <p class="text-sm text-brand-500 dark:text-zinc-400">Download all collected leads as an Excel file. No parameters needed.</p>
+    </div>
+
+  </div>
+
+  <!-- Quick Start -->
+  <div class="mt-8 card p-6">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Quick Start</h2>
+    <div class="rounded-lg bg-brand-950 dark:bg-black/40 p-4 overflow-x-auto">
+      <pre class="text-[11px] font-mono whitespace-pre"><code><span class="text-brand-400 dark:text-zinc-600"># Start a search</span>
+<span class="text-cyan-400">curl</span> <span class="text-emerald-400">-X POST</span> http://localhost:8000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"industry":"Fintech","location":"London"}'
+
+<span class="text-brand-400 dark:text-zinc-600"># Check progress</span>
+<span class="text-cyan-400">curl</span> http://localhost:8000/api/jobs/1
+
+<span class="text-brand-400 dark:text-zinc-600"># Get leads</span>
+<span class="text-cyan-400">curl</span> http://localhost:8000/api/leads?min_score=50</code></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}

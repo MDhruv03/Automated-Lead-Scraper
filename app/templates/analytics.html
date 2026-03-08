@@ -2,17 +2,9 @@
 {% block title %}Analytics · LeadPulse{% endblock %}
 
 {% block content %}
-<style>
-  .stat-card { border-radius: 0.75rem; border: 1px solid rgba(228,228,231,0.5); background: rgba(255,255,255,0.80); backdrop-filter: blur(8px); }
-  .dark .stat-card { border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
-  .chart-card { border-radius: 1rem; border: 1px solid rgba(228,228,231,0.5); background: rgba(255,255,255,0.80); backdrop-filter: blur(8px); }
-  .dark .chart-card { border-color: rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
-  .quality-seg { transition: width .8s cubic-bezier(.4,0,.2,1); }
-</style>
-
 <div class="mb-8">
   <h1 class="text-2xl font-semibold tracking-tight dark:text-white">Analytics</h1>
-  <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Performance metrics and lead intelligence overview.</p>
+  <p class="mt-1 text-sm text-brand-500 dark:text-brand-400">Performance overview</p>
 </div>
 
 {% if total_leads == 0 %}
@@ -21,95 +13,159 @@
 </div>
 {% else %}
 
-<!-- ─── Stat Cards ────────────────────────────────────────────────── -->
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8 mb-6">
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Leads</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ total_leads }}</p>
+<!-- ─── Primary Metrics ───────────────────────────────────────────── -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="h-1.5 w-1.5 rounded-full bg-accent-500"></span>
+      <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Total Leads</p>
+    </div>
+    <p class="text-3xl font-bold tabular-nums tracking-tight dark:text-white">{{ total_leads }}</p>
+    <p class="mt-1 text-[11px] text-brand-400 dark:text-zinc-600">contacts collected</p>
   </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Companies</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ total_companies }}</p>
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="h-1.5 w-1.5 rounded-full bg-cyan-500"></span>
+      <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Companies</p>
+    </div>
+    <p class="text-3xl font-bold tabular-nums tracking-tight dark:text-white">{{ total_companies }}</p>
+    <p class="mt-1 text-[11px] text-brand-400 dark:text-zinc-600">discovered</p>
   </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Avg Score</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ avg_score }}</p>
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>
+      <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Avg Score</p>
+    </div>
+    <p class="text-3xl font-bold tabular-nums tracking-tight dark:text-white">{{ avg_score }}</p>
+    <p class="mt-1 text-[11px] text-brand-400 dark:text-zinc-600">out of 100</p>
   </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Best Score</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ max_score }}</p>
-  </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Email Rate</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ email_rate }}%</p>
-  </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Has Phone</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ phone_rate }}%</p>
-  </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Jobs Done</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ completed_jobs }}</p>
-  </div>
-  <div class="stat-card px-4 py-3">
-    <p class="text-[10px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Avg Duration</p>
-    <p class="mt-1 text-xl font-bold tabular-nums dark:text-white">{{ avg_duration }}</p>
+  <div class="card p-5">
+    <div class="flex items-center gap-2 mb-2">
+      <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+      <p class="text-[11px] font-medium uppercase tracking-wider text-brand-400 dark:text-zinc-500">Email Rate</p>
+    </div>
+    <p class="text-3xl font-bold tabular-nums tracking-tight dark:text-white">{{ email_rate }}%</p>
+    <p class="mt-1 text-[11px] text-brand-400 dark:text-zinc-600">verified valid</p>
   </div>
 </div>
 
-<!-- ─── Quality Tiers ─────────────────────────────────────────────── -->
+<!-- ─── Secondary Metrics ─────────────────────────────────────────── -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+  <div class="card flex items-center gap-3 px-4 py-3">
+    <span class="text-lg font-bold tabular-nums dark:text-white">{{ max_score }}</span>
+    <span class="text-xs text-brand-400 dark:text-zinc-500">Best Score</span>
+  </div>
+  <div class="card flex items-center gap-3 px-4 py-3">
+    <span class="text-lg font-bold tabular-nums dark:text-white">{{ phone_rate }}%</span>
+    <span class="text-xs text-brand-400 dark:text-zinc-500">Phone Coverage</span>
+  </div>
+  <div class="card flex items-center gap-3 px-4 py-3">
+    <span class="text-lg font-bold tabular-nums dark:text-white">{{ completed_jobs }}</span>
+    <span class="text-xs text-brand-400 dark:text-zinc-500">Jobs Done</span>
+  </div>
+  <div class="card flex items-center gap-3 px-4 py-3">
+    <span class="text-lg font-bold tabular-nums dark:text-white">{{ avg_duration }}</span>
+    <span class="text-xs text-brand-400 dark:text-zinc-500">Avg Duration</span>
+  </div>
+</div>
+
+<!-- ─── Lead Quality ──────────────────────────────────────────────── -->
 {% set total_q = high_q + mid_q + low_q %}
-<div class="chart-card p-5 mb-6">
-  <div class="flex items-center justify-between mb-3">
+{% if total_q > 0 %}
+<div class="card p-5 mb-6">
+  <div class="flex items-center justify-between mb-4">
     <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400">Lead Quality</h2>
-    {% if total_q > 0 %}
-    <span class="text-[11px] text-brand-400 dark:text-zinc-500">{{ total_q }} total</span>
-    {% endif %}
+    <span class="text-[11px] text-brand-400 dark:text-zinc-500">{{ total_q }} scored</span>
   </div>
-  {% if total_q > 0 %}
-  <div class="flex h-3 overflow-hidden rounded-full bg-brand-100 dark:bg-zinc-800/80">
-    {% if high_q %}<div class="quality-seg h-full bg-emerald-500" style="width:{{ (high_q / total_q * 100)|round(1) }}%"></div>{% endif %}
-    {% if mid_q %}<div class="quality-seg h-full bg-amber-400" style="width:{{ (mid_q / total_q * 100)|round(1) }}%"></div>{% endif %}
-    {% if low_q %}<div class="quality-seg h-full bg-red-400" style="width:{{ (low_q / total_q * 100)|round(1) }}%"></div>{% endif %}
+  <div class="flex h-2.5 overflow-hidden rounded-full bg-brand-100 dark:bg-zinc-800">
+    {% if high_q %}<div class="h-full bg-emerald-500 transition-all duration-700" style="width:{{ (high_q / total_q * 100)|round(1) }}%"></div>{% endif %}
+    {% if mid_q %}<div class="h-full bg-amber-400 transition-all duration-700" style="width:{{ (mid_q / total_q * 100)|round(1) }}%"></div>{% endif %}
+    {% if low_q %}<div class="h-full bg-red-400 transition-all duration-700" style="width:{{ (low_q / total_q * 100)|round(1) }}%"></div>{% endif %}
   </div>
-  <div class="mt-3 flex gap-5 text-xs text-brand-500 dark:text-zinc-400">
-    <span><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>High 70+ — {{ high_q }} ({{ (high_q / total_q * 100)|round(0)|int }}%)</span>
-    <span><span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-1.5"></span>Mid 40-69 — {{ mid_q }} ({{ (mid_q / total_q * 100)|round(0)|int }}%)</span>
-    <span><span class="inline-block w-2 h-2 rounded-full bg-red-400 mr-1.5"></span>Low &lt;40 — {{ low_q }} ({{ (low_q / total_q * 100)|round(0)|int }}%)</span>
+  <div class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-brand-500 dark:text-zinc-400">
+    <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>High 70+ — {{ high_q }} ({{ (high_q / total_q * 100)|round(0)|int }}%)</span>
+    <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-amber-400"></span>Mid 40–69 — {{ mid_q }} ({{ (mid_q / total_q * 100)|round(0)|int }}%)</span>
+    <span class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-red-400"></span>Low &lt;40 — {{ low_q }} ({{ (low_q / total_q * 100)|round(0)|int }}%)</span>
   </div>
-  {% else %}
-  <div class="flex h-3 rounded-full bg-brand-100 dark:bg-zinc-800/80"></div>
-  <p class="mt-3 text-xs text-brand-400 dark:text-zinc-500">No scored leads yet.</p>
-  {% endif %}
 </div>
+{% endif %}
 
-<!-- ─── Charts Row 1 ──────────────────────────────────────────────── -->
+<!-- ─── Score Distribution + Industry ─────────────────────────────── -->
 <div class="grid gap-5 lg:grid-cols-2 mb-5">
-  <!-- Score Distribution -->
-  <div class="chart-card p-5">
+  <div class="card p-5">
     <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Score Distribution</h2>
     <canvas id="scoreChart" height="200"></canvas>
   </div>
-
-  <!-- Industry Breakdown (doughnut) -->
-  <div class="chart-card p-5">
+  <div class="card p-5">
     <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Industry Breakdown</h2>
     <canvas id="industryChart" height="200"></canvas>
   </div>
 </div>
 
-<!-- ─── Charts Row 2 ──────────────────────────────────────────────── -->
+<!-- ─── Locations + Data Completeness ─────────────────────────────── -->
 <div class="grid gap-5 lg:grid-cols-2 mb-5">
-  <!-- City Distribution -->
-  <div class="chart-card p-5">
-    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Locations</h2>
-    <canvas id="cityChart" height="200"></canvas>
+  <!-- Top Locations -->
+  <div class="card p-5">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-5">Top Locations</h2>
+    {% if city_items %}
+    <div class="space-y-3.5">
+      {% for city, count in city_items %}
+      <div class="flex items-center gap-3">
+        <span class="w-24 text-sm text-brand-600 dark:text-zinc-300 truncate">{{ city }}</span>
+        <div class="flex-1 h-1.5 rounded-full bg-brand-100 dark:bg-zinc-800 overflow-hidden">
+          <div class="h-full rounded-full bg-accent-500 transition-all duration-700" style="width: {{ (count / max_city_count * 100)|round(1) }}%"></div>
+        </div>
+        <span class="text-xs font-medium tabular-nums text-brand-500 dark:text-zinc-400 w-6 text-right">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-xs text-brand-400 dark:text-zinc-500">No location data yet.</p>
+    {% endif %}
   </div>
 
-  <!-- Data Quality Radar -->
-  <div class="chart-card p-5">
-    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-4">Data Quality Overview</h2>
-    <canvas id="radarChart" height="200"></canvas>
+  <!-- Data Completeness -->
+  <div class="card p-5">
+    <h2 class="text-xs font-semibold uppercase tracking-wider text-brand-500 dark:text-zinc-400 mb-5">Data Completeness</h2>
+    <div class="space-y-5">
+      <div>
+        <div class="flex justify-between mb-2">
+          <span class="text-sm text-brand-600 dark:text-zinc-300">Email Validity</span>
+          <span class="text-sm font-semibold tabular-nums dark:text-white">{{ email_rate }}%</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-brand-100 dark:bg-zinc-800 overflow-hidden">
+          <div class="h-full rounded-full bg-emerald-500 transition-all duration-700" style="width: {{ email_rate }}%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-2">
+          <span class="text-sm text-brand-600 dark:text-zinc-300">Phone Coverage</span>
+          <span class="text-sm font-semibold tabular-nums dark:text-white">{{ phone_rate }}%</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-brand-100 dark:bg-zinc-800 overflow-hidden">
+          <div class="h-full rounded-full bg-accent-500 transition-all duration-700" style="width: {{ phone_rate }}%"></div>
+        </div>
+      </div>
+      <div>
+        <div class="flex justify-between mb-2">
+          <span class="text-sm text-brand-600 dark:text-zinc-300">Average Score</span>
+          <span class="text-sm font-semibold tabular-nums dark:text-white">{{ avg_score }}</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-brand-100 dark:bg-zinc-800 overflow-hidden">
+          <div class="h-full rounded-full bg-violet-500 transition-all duration-700" style="width: {{ avg_score }}%"></div>
+        </div>
+      </div>
+      {% set high_pct = (high_q / total_leads * 100)|round(1) if total_leads > 0 else 0 %}
+      <div>
+        <div class="flex justify-between mb-2">
+          <span class="text-sm text-brand-600 dark:text-zinc-300">High Quality Leads</span>
+          <span class="text-sm font-semibold tabular-nums dark:text-white">{{ high_pct }}%</span>
+        </div>
+        <div class="h-1.5 rounded-full bg-brand-100 dark:bg-zinc-800 overflow-hidden">
+          <div class="h-full rounded-full bg-amber-400 transition-all duration-700" style="width: {{ high_pct }}%"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -121,93 +177,66 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 const isDark = document.documentElement.classList.contains('dark');
-const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
 const textColor = isDark ? '#a1a1aa' : '#71717a';
 Chart.defaults.color = textColor;
 Chart.defaults.borderColor = gridColor;
 Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
 Chart.defaults.font.size = 11;
 
-const PALETTE = [
-  '#14b8a6','#06b6d4','#8b5cf6','#f59e0b','#10b981',
-  '#ec4899','#f97316','#0891b2','#84cc16','#6366f1'
-];
+const PALETTE = ['#14b8a6','#06b6d4','#8b5cf6','#f59e0b','#10b981','#ec4899','#f97316','#0891b2','#84cc16','#6366f1'];
 
 const tooltip = {
-  backgroundColor: isDark ? '#1c1c1e' : '#fff',
+  backgroundColor: isDark ? '#18181b' : '#fff',
   titleColor: isDark ? '#fff' : '#18181b',
   bodyColor: isDark ? '#a1a1aa' : '#52525b',
-  borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+  borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
   borderWidth: 1,
-  cornerRadius: 10,
-  padding: 12,
+  cornerRadius: 8,
+  padding: 10,
   displayColors: true,
   boxPadding: 4,
-  caretSize: 6,
   titleFont: { weight: '600' },
 };
 
-// ── Score Distribution (bar with area fill effect) ───────────────
+// ── Score Distribution (smooth area chart) ───────────────────────
 (function() {
-  var scoreData = {{ score_data | safe }};
-  var scoreLabels = {{ score_labels | safe }};
-  var ctx = document.getElementById('scoreChart').getContext('2d');
+  const scoreData = {{ score_data | safe }};
+  const scoreLabels = {{ score_labels | safe }};
+  const ctx = document.getElementById('scoreChart').getContext('2d');
 
-  // gradient bars: red → amber → green → teal
-  var barColors = scoreData.map(function(_, i) {
-    var stops = [
-      ['#ef4444','#fca5a5'], ['#ef4444','#fca5a5'],
-      ['#f59e0b','#fde68a'], ['#f59e0b','#fde68a'],
-      ['#f59e0b','#fbbf24'], ['#eab308','#fde047'],
-      ['#10b981','#6ee7b7'], ['#10b981','#6ee7b7'],
-      ['#14b8a6','#5eead4'], ['#14b8a6','#5eead4']
-    ];
-    var pair = stops[i] || ['#14b8a6','#5eead4'];
-    var g = ctx.createLinearGradient(0, ctx.canvas.height, 0, 0);
-    g.addColorStop(0, pair[0] + '20');
-    g.addColorStop(0.5, pair[0] + 'aa');
-    g.addColorStop(1, pair[1]);
-    return g;
-  });
-
-  // border colors (solid)
-  var borderColors = [
-    '#ef4444','#ef4444','#f59e0b','#f59e0b','#f59e0b',
-    '#eab308','#10b981','#10b981','#14b8a6','#14b8a6'
-  ];
+  const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+  gradient.addColorStop(0, isDark ? 'rgba(20,184,166,0.25)' : 'rgba(20,184,166,0.12)');
+  gradient.addColorStop(1, 'rgba(20,184,166,0)');
 
   new Chart(ctx, {
-    type: 'bar',
+    type: 'line',
     data: {
       labels: scoreLabels,
       datasets: [{
         data: scoreData,
-        backgroundColor: barColors,
-        borderColor: borderColors,
-        borderWidth: 1.5,
-        borderRadius: 8,
-        borderSkipped: false,
-        maxBarThickness: 40,
-        hoverBackgroundColor: borderColors.map(function(c) { return c + 'dd'; }),
+        fill: true,
+        backgroundColor: gradient,
+        borderColor: '#14b8a6',
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 4,
+        pointBackgroundColor: '#14b8a6',
+        pointBorderColor: isDark ? '#18181b' : '#fff',
+        pointBorderWidth: 2,
+        pointHoverRadius: 6,
       }]
     },
     options: {
       responsive: true,
-      animation: { duration: 900, easing: 'easeOutQuart' },
+      animation: { duration: 800, easing: 'easeOutQuart' },
       plugins: {
         legend: { display: false },
         tooltip: { ...tooltip, callbacks: { label: function(c) { return c.parsed.y + ' leads'; } } }
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1, padding: 8 },
-          grid: { color: gridColor, drawBorder: false }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { font: { size: 10 } }
-        }
+        y: { beginAtZero: true, ticks: { stepSize: 1, padding: 8 }, grid: { color: gridColor, drawBorder: false } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
       }
     }
   });
@@ -215,12 +244,12 @@ const tooltip = {
 
 // ── Industry Breakdown (doughnut) ────────────────────────────────
 (function() {
-  var labels = {{ industry_labels | safe }};
-  var data = {{ industry_data | safe }};
+  const labels = {{ industry_labels | safe }};
+  const data = {{ industry_data | safe }};
   if (!labels.length) return;
 
-  var ctx = document.getElementById('industryChart').getContext('2d');
-  var total = data.reduce(function(a,b) { return a+b; }, 0);
+  const ctx = document.getElementById('industryChart').getContext('2d');
+  const total = data.reduce(function(a, b) { return a + b; }, 0);
 
   new Chart(ctx, {
     type: 'doughnut',
@@ -230,25 +259,18 @@ const tooltip = {
         data: data,
         backgroundColor: PALETTE.slice(0, labels.length),
         borderColor: isDark ? '#18181b' : '#fff',
-        borderWidth: 3,
-        hoverOffset: 8,
+        borderWidth: 2.5,
+        hoverOffset: 6,
       }]
     },
     options: {
       responsive: true,
-      cutout: '62%',
-      animation: { animateRotate: true, duration: 1000, easing: 'easeOutQuart' },
+      cutout: '65%',
+      animation: { animateRotate: true, duration: 800, easing: 'easeOutQuart' },
       plugins: {
         legend: {
           position: 'right',
-          labels: {
-            boxWidth: 10,
-            boxHeight: 10,
-            borderRadius: 3,
-            useBorderRadius: true,
-            padding: 12,
-            font: { size: 11 }
-          }
+          labels: { boxWidth: 8, boxHeight: 8, borderRadius: 2, useBorderRadius: true, padding: 10, font: { size: 11 } }
         },
         tooltip: {
           ...tooltip,
@@ -264,126 +286,21 @@ const tooltip = {
     plugins: [{
       id: 'centerText',
       afterDraw: function(chart) {
-        var w = chart.width, h = chart.height, cx = chart.chartArea;
+        var cx = chart.chartArea;
         var midX = (cx.left + cx.right) / 2;
         var midY = (cx.top + cx.bottom) / 2;
         chart.ctx.save();
-        chart.ctx.font = 'bold 20px Inter, system-ui, sans-serif';
+        chart.ctx.font = 'bold 18px Inter, system-ui, sans-serif';
         chart.ctx.fillStyle = isDark ? '#fff' : '#18181b';
         chart.ctx.textAlign = 'center';
         chart.ctx.textBaseline = 'middle';
-        chart.ctx.fillText(total, midX, midY - 8);
+        chart.ctx.fillText(total, midX, midY - 6);
         chart.ctx.font = '10px Inter, system-ui, sans-serif';
         chart.ctx.fillStyle = textColor;
         chart.ctx.fillText('total', midX, midY + 10);
         chart.ctx.restore();
       }
     }]
-  });
-})();
-
-// ── City Distribution (horizontal bar with individual colors) ────
-(function() {
-  var labels = {{ city_labels | safe }};
-  var data = {{ city_data | safe }};
-  if (!labels.length) return;
-
-  var ctx = document.getElementById('cityChart').getContext('2d');
-  var barColors = labels.map(function(_, i) {
-    var c = PALETTE[i % PALETTE.length];
-    var g = ctx.createLinearGradient(0, 0, ctx.canvas.width, 0);
-    g.addColorStop(0, c);
-    g.addColorStop(1, c + '55');
-    return g;
-  });
-
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        data: data,
-        backgroundColor: barColors,
-        borderColor: labels.map(function(_, i) { return PALETTE[i % PALETTE.length]; }),
-        borderWidth: 1,
-        borderRadius: 6,
-        borderSkipped: false,
-        maxBarThickness: 24,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      animation: { duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...tooltip, callbacks: { label: function(c) { return c.parsed.x + ' companies'; } } }
-      },
-      scales: {
-        x: { beginAtZero: true, ticks: { stepSize: 1, padding: 8 }, grid: { color: gridColor, drawBorder: false } },
-        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
-      }
-    }
-  });
-})();
-
-// ── Data Quality Radar ───────────────────────────────────────────
-(function() {
-  var emailRate = {{ email_rate }};
-  var phoneRate = {{ phone_rate }};
-  var avgScore = {{ avg_score }};
-  var highQ = {{ high_q }};
-  var totalLeads = {{ total_leads }};
-  var highPct = totalLeads > 0 ? Math.round(highQ / totalLeads * 100) : 0;
-
-  var ctx = document.getElementById('radarChart').getContext('2d');
-  var fillGrad = ctx.createRadialGradient(
-    ctx.canvas.width/2, ctx.canvas.height/2, 0,
-    ctx.canvas.width/2, ctx.canvas.height/2, ctx.canvas.height/2
-  );
-  fillGrad.addColorStop(0, isDark ? 'rgba(20,184,166,0.35)' : 'rgba(20,184,166,0.25)');
-  fillGrad.addColorStop(1, isDark ? 'rgba(20,184,166,0.05)' : 'rgba(20,184,166,0.03)');
-
-  new Chart(ctx, {
-    type: 'radar',
-    data: {
-      labels: ['Email Valid %', 'Phone Coverage %', 'Avg Score', 'High Quality %'],
-      datasets: [{
-        label: 'Your Data',
-        data: [emailRate, phoneRate, avgScore, highPct],
-        backgroundColor: fillGrad,
-        borderColor: '#14b8a6',
-        borderWidth: 2,
-        pointBackgroundColor: '#14b8a6',
-        pointBorderColor: isDark ? '#18181b' : '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-      }]
-    },
-    options: {
-      responsive: true,
-      animation: { duration: 1000, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { display: false },
-        tooltip: { ...tooltip, callbacks: { label: function(c) { return ' ' + c.label + ': ' + c.raw; } } }
-      },
-      scales: {
-        r: {
-          beginAtZero: true,
-          max: 100,
-          ticks: {
-            stepSize: 25,
-            backdropColor: 'transparent',
-            font: { size: 9 },
-            color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'
-          },
-          grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
-          angleLines: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
-          pointLabels: { font: { size: 11 }, color: textColor }
-        }
-      }
-    }
   });
 })();
 </script>

@@ -116,12 +116,13 @@ async def analytics_page(request: Request, db: Session = Depends(get_db)):
             "high_q": high_q,
             "mid_q": mid_q,
             "low_q": low_q,
-            # charts
+            # charts (JSON for Chart.js)
             "score_labels": json.dumps(list(buckets.keys())),
             "score_data": json.dumps(list(buckets.values())),
             "industry_labels": json.dumps([r[0] for r in industry_rows]),
             "industry_data": json.dumps([r[1] for r in industry_rows]),
-            "city_labels": json.dumps([r[0] for r in city_rows]),
-            "city_data": json.dumps([r[1] for r in city_rows]),
+            # template-friendly lists for CSS-only rendering
+            "city_items": city_rows,
+            "max_city_count": city_rows[0][1] if city_rows else 1,
         },
     )
